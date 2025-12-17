@@ -7,7 +7,7 @@ const gifts = [
   { id: '4', name: 'Sports Car', price: 50 }, // Added just for fun/premium feel
 ];
 
-export const sendGift = async (req, res) => {
+export const sendGift = async (req: any, res: any) => {
   const { recipientId, giftId } = req.body;
   const senderId = req.user.id;
 
@@ -51,6 +51,6 @@ export const sendGift = async (req, res) => {
   }
 };
 
-export const getGifts = (req, res) => {
+export const getGifts = (req: any, res: any) => {
   res.json(gifts);
 };
