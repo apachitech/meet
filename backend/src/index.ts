@@ -20,7 +20,7 @@ app.use(bodyParser.json());
 app.post('/api/register', register);
 app.post('/api/login', login);
 
-app.get('/api/profile', authenticateToken, async (req, res) => {
+app.get('/api/profile', authenticateToken, async (req: any, res: any) => {
   try {
     const user = await User.findById(req.user?.id).select('-password');
     if (!user) {
@@ -36,7 +36,7 @@ app.post('/api/gift', authenticateToken, sendGift);
 app.get('/api/gifts', getGifts);
 app.get('/api/models', getModels);
 
-app.get('/', (req, res) => {
+app.get('/', (req: any, res: any) => {
   res.send('Backend server is running!');
 });
 
