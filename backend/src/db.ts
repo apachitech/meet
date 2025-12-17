@@ -1,22 +1,15 @@
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const file = join(__dirname, 'db.json');
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/meet');
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (error: any) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
+};
 
-class LowWithLodash<T> extends Low<T> {
-  chain: any = {};
-}
-
-const adapter = new JSONFile<{ users: any[] }>(file);
-const db = new LowWithLodash(adapter);
-
-await db.read();
-
-db.data ||= { users: [] };
-
-await db.write();
-
-export default db;
+export default connectDB;
