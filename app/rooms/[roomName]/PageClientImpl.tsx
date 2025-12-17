@@ -31,7 +31,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useSetupE2EE } from '@/lib/useSetupE2EE';
 import { useLowCPUOptimizer } from '@/lib/usePerfomanceOptimiser';
-import jwt from 'jsonwebtoken';
+import { jwtDecode } from 'jwt-decode';
 import { Gift } from '@/app/custom/Gift';
 
 const CONN_DETAILS_ENDPOINT =
@@ -58,7 +58,7 @@ export function PageClientImpl(props: {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      const decoded: any = jwt.decode(token);
+      const decoded: any = jwtDecode(token);
       if (decoded && decoded.username) {
         setUserChoices((prev) => ({
           ...prev,
