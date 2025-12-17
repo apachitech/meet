@@ -11,7 +11,14 @@ const nextConfig = {
       test: /\.mjs$/,
       enforce: 'pre',
       use: ['source-map-loader'],
+      exclude: [/@mediapipe/],
     });
+
+    // Suppress source map warnings for known packages with missing source maps
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      { module: /@mediapipe/ },
+    ];
 
     return config;
   },
