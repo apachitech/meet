@@ -6,6 +6,12 @@ const nextConfig = {
     formats: ['image/webp'],
   },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }) => {
+    // Exclude backend directory from compilation
+    config.module.rules.push({
+      test: /\.(ts|tsx|js|jsx)$/,
+      exclude: /backend/,
+    });
+
     // Important: return the modified config
     config.module.rules.push({
       test: /\.mjs$/,
