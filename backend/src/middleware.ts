@@ -18,7 +18,7 @@ export const authenticateAdmin = async (req: any, res: any, next: any) => {
     await authenticateToken(req, res, async () => {
         // Double check user role from DB
         const user = await User.findById(req.user.userId);
-        if (user.role !== 'admin') {
+        if (!user || user.role !== 'admin') {
             return res.sendStatus(403);
         }
         next();
