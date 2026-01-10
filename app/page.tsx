@@ -142,6 +142,7 @@ export default function Page() {
                 onClick={() => router.push(`/rooms/${model.username}`)}
               >
                 <div className={styles.cardPreview}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${model.username}`} 
                     alt={model.username} 

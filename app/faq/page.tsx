@@ -55,7 +55,7 @@ export default function FAQPage() {
                         <div style={{ marginBottom: '1.5rem' }}>
                             <h3 style={{ marginBottom: '0.5rem' }}>How do I buy Tokens?</h3>
                             <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                You can purchase tokens by clicking the "Buy Tokens" button in the sidebar or visiting your profile page. We support various secure payment methods.
+                                You can purchase tokens by clicking the &quot;Buy Tokens&quot; button in the sidebar or visiting your profile page. We support various secure payment methods.
                             </p>
                         </div>
 
