@@ -25,7 +25,6 @@ export function MicrophoneSettings() {
     // enable Krisp by default on non-low power devices
     setNoiseFilterEnabled(!isLowPowerDevice());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <div
