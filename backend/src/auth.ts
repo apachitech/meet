@@ -45,19 +45,22 @@ export const login = async (req: Request, res: Response) => {
   try {
     const user = await User.findOne({ username });
 
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    bcrypt.compare(password, user.password, (err: Error | null, result: boolean) => {
+      if (err) return res.status(500).json({ message: 'Error checking password' });
+      if (!result) return res.status(401).json({ message: 'Invalid credentials' });
 
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
+      const token = jwt.sign(
+        { userId: user._id, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
-    const token = jwt.sign({ id: user._id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
-
-    res.json({ token });
+      res.json({ token, user: user.select('-password') });
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error during login' });

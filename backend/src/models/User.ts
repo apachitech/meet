@@ -6,8 +6,10 @@ export class UserModel {
   username: string;
   password?: string;
   email: string;
-  role: 'user' | 'model';
+  role: 'user' | 'model' | 'admin';
   tokenBalance: number;
+  totalTips: number;
+  totalLikes: number;
   likes: number;
   avatar?: string;
   bio?: string;
@@ -23,6 +25,8 @@ export class UserModel {
     this.email = data.email;
     this.role = data.role || 'user';
     this.tokenBalance = data.tokenBalance || 0;
+    this.totalTips = data.totalTips || 0;
+    this.totalLikes = data.totalLikes || 0;
     this.likes = data.likes || 0;
     this.avatar = data.avatar || '';
     this.bio = data.bio || '';
