@@ -11,7 +11,7 @@ export default function ProfilePage() {
     const [user, setUser] = useState<{
         username: string;
         email: string;
-        role: 'user' | 'model';
+        role: 'user' | 'model' | 'admin';
         tokenBalance: number;
         bio?: string;
         settings?: { emailNotifications: boolean; twoFactor: boolean };

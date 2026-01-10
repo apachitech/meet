@@ -414,6 +414,26 @@ function VideoConferenceComponent(props: {
     };
   }, []);
 
+
+
+  const lowPowerMode = useLowCPUOptimizer(room);
+
+  const router = useRouter();
+  const handleOnLeave = React.useCallback(() => router.push('/'), [router]);
+  const handleError = React.useCallback((error: Error) => {
+    const isPermissionError = error.name === 'NotAllowedError' || 
+                             error.name === 'PermissionDeniedError' || 
+                             error.message.includes('Permission denied');
+    if (isPermissionError) {
+       console.warn('Media permissions denied by user.');
+       return;
+    }
+    console.error(error);
+  }, []);
+  const handleEncryptionError = React.useCallback((error: Error) => {
+    console.error(error);
+  }, []);
+
   React.useEffect(() => {
     room.on(RoomEvent.Disconnected, handleOnLeave);
     room.on(RoomEvent.EncryptionError, handleEncryptionError);
@@ -447,24 +467,6 @@ function VideoConferenceComponent(props: {
       room.off(RoomEvent.MediaDevicesError, handleError);
     };
   }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices, connectOptions, handleEncryptionError, handleError, handleOnLeave]);
-
-  const lowPowerMode = useLowCPUOptimizer(room);
-
-  const router = useRouter();
-  const handleOnLeave = React.useCallback(() => router.push('/'), [router]);
-  const handleError = React.useCallback((error: Error) => {
-    const isPermissionError = error.name === 'NotAllowedError' || 
-                             error.name === 'PermissionDeniedError' || 
-                             error.message.includes('Permission denied');
-    if (isPermissionError) {
-       console.warn('Media permissions denied by user.');
-       return;
-    }
-    console.error(error);
-  }, []);
-  const handleEncryptionError = React.useCallback((error: Error) => {
-    console.error(error);
-  }, []);
 
   return (
     <div className="lk-room-container">

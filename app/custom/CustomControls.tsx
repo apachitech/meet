@@ -157,8 +157,7 @@ const ControlButton = ({ active, onClick, icon, label }: any) => (
       justifyContent: 'center',
       cursor: 'pointer',
       transition: 'all 0.2s',
-      position: 'relative',
-      group: 'btn'
+      position: 'relative'
     }}
     onMouseOver={(e) => {
         if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
