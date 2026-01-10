@@ -326,7 +326,7 @@ function VideoConferenceComponent(props: {
   roomName: string;
   userRole: string;
 }) {
-  const keyProvider = new ExternalE2EEKeyProvider();
+  const keyProvider = React.useMemo(() => new ExternalE2EEKeyProvider(), []);
   const { worker, e2eePassphrase } = useSetupE2EE();
   const e2eeEnabled = !!(e2eePassphrase && worker);
 
@@ -360,7 +360,7 @@ function VideoConferenceComponent(props: {
       e2ee: keyProvider && worker && e2eeEnabled ? { keyProvider, worker } : undefined,
       singlePeerConnection: true,
     };
-  }, [props.userChoices, props.options.hq, props.options.codec, e2eeEnabled]);
+  }, [props.userChoices, props.options.hq, props.options.codec, e2eeEnabled, keyProvider, worker]);
 
   const room = React.useMemo(() => new Room(roomOptions), [roomOptions]);
 
@@ -377,6 +377,7 @@ function VideoConferenceComponent(props: {
     checkStatus();
     const interval = setInterval(checkStatus, 3000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.roomName]);
 
   const isOwner = props.userChoices.username === props.roomName;
@@ -445,7 +446,7 @@ function VideoConferenceComponent(props: {
       room.off(RoomEvent.EncryptionError, handleEncryptionError);
       room.off(RoomEvent.MediaDevicesError, handleError);
     };
-  }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices, connectOptions]);
+  }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices, connectOptions, handleEncryptionError, handleError, handleOnLeave]);
 
   const lowPowerMode = useLowCPUOptimizer(room);
 
@@ -534,7 +535,7 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
     checkStatus();
     const interval = setInterval(checkStatus, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [roomName]);
 
   const handleSendGift = async (giftId: string, price: number, name: string, recipient: RemoteParticipant) => {
     const token = localStorage.getItem('token');
