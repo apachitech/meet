@@ -25,7 +25,7 @@ export const register = async (req: Request, res: Response) => {
       password: hashedPassword,
       role,
       email,
-      tokenBalance: 0
+      tokenBalance: 1000 // Give 1000 tokens for testing
     });
 
     res.status(201).json({ message: 'User registered successfully', userId: newUser._id });

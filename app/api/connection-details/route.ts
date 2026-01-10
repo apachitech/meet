@@ -7,35 +7,14 @@ import jwt from 'jsonwebtoken';
 const API_KEY = process.env.LIVEKIT_API_KEY;
 const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  '509ce6f70283b645c681d68f17425278d0cc8143818f80347cbf3ccbca4acd96';
 
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    let decoded: any;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (err) {
-      console.error('JWT verification failed:', err);
-      return new NextResponse(JSON.stringify({ error: 'Invalid token' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Validate that required fields exist in token
-    if (!decoded.id || !decoded.username) {
-      return new NextResponse(JSON.stringify({ error: 'Token missing required fields' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
 
     // Parse query parameters
     const roomName = request.nextUrl.searchParams.get('roomName');
@@ -56,23 +35,56 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const participantName = decoded.username;
-    const participantIdentity = decoded.id;
-
-    // Fetch authoritative role from backend
+    let participantName = '';
+    let participantIdentity = '';
     let role = 'user';
-    try {
-      const profileRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const profile = await profileRes.json();
-      if (profile.role) {
-        role = profile.role;
+    let avatar = '';
+
+    if (!token) {
+      // Guest Access
+      const randomId = Math.floor(Math.random() * 10000);
+      participantName = `Guest-${randomId}`;
+      participantIdentity = `guest-${randomId}`;
+    } else {
+      let decoded: any;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (err) {
+        console.error('JWT verification failed:', err);
+        return new NextResponse(JSON.stringify({ error: 'Invalid token' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
-    } catch (e) {
-      console.error('Failed to fetch profile for role verification', e);
-      // Fallback to token role if available
-      role = decoded.role || 'user';
+
+      // Validate that required fields exist in token
+      if (!decoded.id || !decoded.username) {
+        return new NextResponse(JSON.stringify({ error: 'Token missing required fields' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
+      participantName = decoded.username;
+      participantIdentity = decoded.id;
+
+      // Fetch authoritative role from backend
+      try {
+        const profileRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const profile = await profileRes.json();
+        if (profile.role) {
+          role = profile.role;
+        }
+        if (profile.avatar) {
+          avatar = profile.avatar;
+        }
+      } catch (e) {
+        console.error('Failed to fetch profile for role verification', e);
+        // Fallback to token role if available
+        role = decoded.role || 'user';
+      }
     }
 
     // Generate participant token
@@ -80,6 +92,7 @@ export async function GET(request: NextRequest) {
       {
         identity: participantIdentity,
         name: participantName,
+        metadata: JSON.stringify({ avatar }),
       },
       roomName,
       role,
@@ -122,4 +135,3 @@ function createParticipantToken(userInfo: AccessTokenOptions, roomName: string, 
   at.addGrant(grant);
   return at.toJwt();
 }
-

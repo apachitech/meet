@@ -1,6 +1,23 @@
 import * as React from 'react';
 import { PageClientImpl } from './PageClientImpl';
 import { isVideoCodec } from '@/lib/types';
+import { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ roomName: string }> }): Promise<Metadata> {
+  const { roomName } = await params;
+  
+  // Optional: Fetch site name again if we want to be super explicit, 
+  // but the template in RootLayout should handle the suffix if we just return a title.
+  // However, since generateMetadata in root is async, let's just rely on the template if possible, 
+  // OR fetch it here to be safe.
+  
+  return {
+    title: decodeURIComponent(roomName),
+    openGraph: {
+        title: `Watch ${decodeURIComponent(roomName)} Live`,
+    }
+  };
+}
 
 export default async function Page({
   params,
@@ -8,7 +25,6 @@ export default async function Page({
 }: {
   params: Promise<{ roomName: string }>;
   searchParams: Promise<{
-    // FIXME: We should not allow values for regions if in playground mode.
     region?: string;
     hq?: string;
     codec?: string;

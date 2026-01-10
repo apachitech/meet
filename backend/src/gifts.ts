@@ -1,11 +1,6 @@
 import { User } from './models/User.js';
-
-const gifts = [
-  { id: '1', name: 'Rose', price: 1 },
-  { id: '2', name: 'Diamond', price: 10 },
-  { id: '3', name: 'Heart', price: 5 },
-  { id: '4', name: 'Sports Car', price: 50 }, // Added just for fun/premium feel
-];
+import { updateBattleScoreByUsername } from './battles.js';
+import { Gift } from './models/Gift.js';
 
 export const sendGift = async (req: any, res: any) => {
   const { recipientId, giftId } = req.body;
@@ -15,7 +10,8 @@ export const sendGift = async (req: any, res: any) => {
     return res.status(400).json({ message: 'Recipient and gift are required' });
   }
 
-  const gift = gifts.find((g) => g.id === giftId);
+  const gifts = await Gift.findAll();
+  const gift = gifts.find((g: any) => g.id === giftId);
   if (!gift) {
     return res.status(404).json({ message: 'Gift not found' });
   }
@@ -40,9 +36,19 @@ export const sendGift = async (req: any, res: any) => {
 
     sender.tokenBalance -= gift.price;
     recipient.tokenBalance += gift.price;
+    recipient.totalTips = (recipient.totalTips || 0) + gift.price;
 
     await sender.save();
     await recipient.save();
+
+    // Check for active battle in the sender's current room context
+    if (req.body.roomName) {
+        // Ensure that we are updating the battle score for the correct user
+        // We use the recipient's username because the battle system tracks usernames
+        if (recipient.username) {
+            updateBattleScoreByUsername(req.body.roomName, recipient.username, gift.price);
+        }
+    }
 
     res.json({ message: 'Gift sent successfully', senderBalance: sender.tokenBalance });
   } catch (error) {
@@ -51,6 +57,7 @@ export const sendGift = async (req: any, res: any) => {
   }
 };
 
-export const getGifts = (req: any, res: any) => {
+export const getGifts = async (req: any, res: any) => {
+  const gifts = await Gift.findAll();
   res.json(gifts);
 };

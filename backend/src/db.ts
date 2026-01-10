@@ -1,15 +1,10 @@
-import mongoose from 'mongoose';
+// import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/meet');
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error: any) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
-  }
+  console.log('Using simple JSON DB (No MongoDB required)');
+  // No-op for now
 };
 
 export default connectDB;

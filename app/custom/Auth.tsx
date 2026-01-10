@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-
+import { useSiteConfig } from '../components/SiteConfigProvider';
 
 export const Auth = () => {
+  const settings = useSiteConfig();
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -59,9 +60,12 @@ export const Auth = () => {
         maxWidth: '400px',
         boxShadow: 'var(--shadow-glow)'
       }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '2rem', fontSize: '2rem' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '0.5rem', fontSize: '2rem' }}>
           {isLogin ? 'Welcome Back' : 'Join the Stage'}
         </h2>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+           to {settings?.siteName || 'Apacciflix'}
+        </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
