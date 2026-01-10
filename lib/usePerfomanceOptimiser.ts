@@ -52,6 +52,7 @@ export function useLowCPUOptimizer(room: Room, options: Partial<LowCPUOptimizerO
     return () => {
       room.localParticipant.off(ParticipantEvent.LocalTrackCpuConstrained, handleCpuConstrained);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, opts.reducePublisherVideoQuality, opts.reduceSubscriberVideoQuality]);
 
   React.useEffect(() => {

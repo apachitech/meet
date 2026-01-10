@@ -29,6 +29,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
       media: { camera: true, microphone: true, label: 'Media Devices', speaker: true },
       recording: recordingEndpoint ? { label: 'Recording' } : undefined,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const tabs = React.useMemo(
