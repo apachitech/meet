@@ -55,7 +55,7 @@ app.post('/api/login', login);
 
 app.get('/api/profile', authenticateToken, async (req: any, res: any) => {
   try {
-    const user = await User.findById(req.user?.id);
+    const user = await User.findById(req.user?.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
