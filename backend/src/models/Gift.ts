@@ -1,53 +1,41 @@
-import { db } from '../simple-db.js';
-import crypto from 'crypto';
+import mongoose, { Document, Model } from 'mongoose';
 
-export class GiftModel {
-  id: string;
+export interface IGift extends Document {
   name: string;
   price: number;
   icon: string;
   type: 'standard' | 'premium' | 'luxury';
-
-  constructor(data: any) {
-    this.id = data.id || crypto.randomUUID();
-    this.name = data.name;
-    this.price = data.price;
-    this.icon = data.icon;
-    this.type = data.type || 'standard';
-  }
-
-  static async findAll() {
-    const data = db.read();
-    return data.gifts.map((g: any) => new GiftModel(g));
-  }
-
-  static async create(data: any) {
-    const dbData = db.read();
-    const newGift = new GiftModel(data);
-    dbData.gifts.push(newGift);
-    db.write(dbData);
-    return newGift;
-  }
-
-  static async update(id: string, updates: any) {
-    const dbData = db.read();
-    const index = dbData.gifts.findIndex((g: any) => g.id === id);
-    if (index === -1) return null;
-    
-    dbData.gifts[index] = { ...dbData.gifts[index], ...updates };
-    db.write(dbData);
-    return new GiftModel(dbData.gifts[index]);
-  }
-
-  static async delete(id: string) {
-    const dbData = db.read();
-    const index = dbData.gifts.findIndex((g: any) => g.id === id);
-    if (index === -1) return false;
-    
-    dbData.gifts.splice(index, 1);
-    db.write(dbData);
-    return true;
-  }
 }
 
-export const Gift = GiftModel;
+interface IGiftModel extends Model<IGift> {
+  findAll(): Promise<IGift[]>;
+  update(id: string, updates: any): Promise<IGift | null>;
+  delete(id: string): Promise<boolean>;
+}
+
+const giftSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  icon: { type: String, required: true },
+  type: { 
+    type: String, 
+    enum: ['standard', 'premium', 'luxury'], 
+    default: 'standard' 
+  }
+});
+
+// Add static methods for compatibility
+giftSchema.statics.findAll = function() {
+  return this.find({});
+};
+
+giftSchema.statics.update = function(id: string, updates: any) {
+  return this.findByIdAndUpdate(id, updates, { new: true });
+};
+
+giftSchema.statics.delete = async function(id: string) {
+  const result = await this.findByIdAndDelete(id);
+  return !!result;
+};
+
+export const Gift = mongoose.model<IGift, IGiftModel>('Gift', giftSchema);
