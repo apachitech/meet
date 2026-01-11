@@ -41,8 +41,24 @@ export const Auth = () => {
           localStorage.setItem('token', data.token);
           window.location.href = '/profile';
         } else {
-          setMessage('Registration successful! Please log in.');
-          setIsLogin(true);
+          setMessage('Registration successful! Logging you in...');
+          // Automatically log in after registration
+          try {
+             const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/login`, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ username, password })
+             });
+             const loginData = await loginRes.json();
+             if (loginRes.ok) {
+                 localStorage.setItem('token', loginData.token);
+                 window.location.href = '/profile';
+             } else {
+                 setIsLogin(true); // Fallback to login form if auto-login fails
+             }
+          } catch(e) {
+             setIsLogin(true);
+          }
         }
       } else {
         setMessage(data.message);
