@@ -4,7 +4,7 @@ import { Gift } from './models/Gift.js';
 
 export const sendGift = async (req: any, res: any) => {
   const { recipientId, giftId } = req.body;
-  const senderId = req.user.id;
+  const senderId = req.user.userId;
 
   if (!recipientId || !giftId) {
     return res.status(400).json({ message: 'Recipient and gift are required' });

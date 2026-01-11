@@ -11,7 +11,7 @@ export const createOrder = async (req: any, res: any) => {
 
 export const captureOrder = async (req: any, res: any) => {
   const { orderId, packageId } = req.body;
-  const userId = req.user.id;
+  const userId = req.user.userId;
 
   try {
     const user = await User.findById(userId);
