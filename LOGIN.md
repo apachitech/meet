@@ -45,7 +45,7 @@ You can manually send a registration request with the admin role using a tool li
 
 **Example cURL command:**
 ```bash
-curl -X POST http://localhost:3001/api/register \
+curl -X POST https://meet-yikm.onrender.com/api/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "my_admin",
