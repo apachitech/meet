@@ -1,11 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSiteConfig } from '../components/SiteConfigProvider';
+import { useSearchParams } from 'next/navigation';
 
 export const Auth = () => {
   const settings = useSiteConfig();
+  const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
+
+  useEffect(() => {
+    if (searchParams.get('mode') === 'register') {
+      setIsLogin(false);
+    }
+  }, [searchParams]);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -30,7 +39,7 @@ export const Auth = () => {
       if (res.ok) {
         if (isLogin) {
           localStorage.setItem('token', data.token);
-          window.location.href = '/';
+          window.location.href = '/profile';
         } else {
           setMessage('Registration successful! Please log in.');
           setIsLogin(true);

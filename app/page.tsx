@@ -84,7 +84,7 @@ export default function Page() {
               <button className={styles.logoutBtn} onClick={() => router.push('/login')}>Login</button>
               <button 
                 className={styles.logoutBtn} 
-                onClick={() => router.push('/login')} 
+                onClick={() => router.push('/login?mode=register')} 
                 style={{background: 'var(--accent-primary)', border: 'none', color: 'white'}}
               >
                 Sign Up
