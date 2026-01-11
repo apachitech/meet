@@ -27,7 +27,32 @@ const port = 3001;
 connectDB();
 initPrivateShowMonitor();
 
-app.use(cors());
+// Configure CORS to allow requests from Vercel frontend
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests from localhost and Vercel deployments
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5500',
+      'http://127.0.0.1:5500',
+      /\.vercel\.app$/,  // Allow any Vercel deployment
+      /\.onrender\.com$/  // Allow any Render deployment
+    ];
+    
+    if (!origin || allowedOrigins.some(allowed => {
+      if (typeof allowed === 'string') return origin === allowed;
+      return allowed.test(origin);
+    })) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(bodyParser.json());
 
 // Public Profile Route

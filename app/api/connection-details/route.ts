@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Validate that required fields exist in token
-      if (!decoded.id || !decoded.username) {
+      if (!decoded.userId || !decoded.username) {
         return new NextResponse(JSON.stringify({ error: 'Token missing required fields' }), {
           status: 403,
           headers: { 'Content-Type': 'application/json' }
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       }
       
       participantName = decoded.username;
-      participantIdentity = decoded.id;
+      participantIdentity = decoded.userId;
 
       // Fetch authoritative role from backend
       try {
