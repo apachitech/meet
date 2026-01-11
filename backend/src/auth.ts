@@ -19,6 +19,11 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Username already exists' });
     }
 
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({
       username,
@@ -29,9 +34,21 @@ export const register = async (req: Request, res: Response) => {
     });
 
     res.status(201).json({ message: 'User registered successfully', userId: newUser._id });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error during registration' });
+  } catch (error: any) {
+    console.error('Registration error details:', JSON.stringify(error, null, 2));
+    console.error('Registration error stack:', error.stack);
+    
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Username or email already exists' });
+    }
+    
+    // Check for validation errors
+    if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map((val: any) => val.message);
+        return res.status(400).json({ message: 'Validation Error', errors: messages });
+    }
+
+    res.status(500).json({ message: 'Server error during registration', error: error.message });
   }
 };
 
@@ -49,18 +66,18 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    bcrypt.compare(password, user.password, (err: Error | null, result: boolean) => {
-      if (err) return res.status(500).json({ message: 'Error checking password' });
-      if (!result) return res.status(401).json({ message: 'Invalid credentials' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
-      const token = jwt.sign(
-        { userId: user._id, username: user.username, role: user.role },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+    const token = jwt.sign(
+      { userId: user._id, username: user.username, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
 
-      res.json({ token, user: user.select('-password') });
-    });
+    res.json({ token, user: user.select('-password') });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error during login' });

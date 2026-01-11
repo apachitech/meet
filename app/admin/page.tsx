@@ -54,7 +54,7 @@ export default function AdminPage() {
     };
     checkAdmin();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [router]);
 
   const fetchData = async (token: string) => {
     // Fetch Settings

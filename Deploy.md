@@ -1,26 +1,27 @@
-# Deployment Guide (Supabase + Vercel + Backend Hosting)
+# Deployment Guide (MongoDB Atlas + Vercel + Backend Hosting)
 
 This guide outlines how to deploy the **Apacciflix Meet** platform. 
 
 Since the project consists of a **Next.js Frontend** and a separate **Express Backend** (with stateful logic like battles/private shows), the deployment is split into three parts:
 
-1.  **Database**: Supabase (PostgreSQL)
+1.  **Database**: MongoDB Atlas (NoSQL)
 2.  **Backend**: Render, Railway, or Heroku (Must be a persistent server, NOT serverless)
 3.  **Frontend**: Vercel
 
 ---
 
-## 1. Database Setup (Supabase)
+## 1. Database Setup (MongoDB Atlas)
 
-The current project uses a local `db.json` file. For production, you **must** migrate to a real database like PostgreSQL on Supabase.
+The project has been migrated to use MongoDB with Mongoose.
 
-1.  **Create a Supabase Project**:
-    *   Go to [supabase.com](https://supabase.com) and create a new project.
-    *   Note down your `Database Connection String` (URI).
+1.  **Create a MongoDB Atlas Cluster**:
+    *   Go to [mongodb.com/atlas](https://www.mongodb.com/atlas) and create a free cluster.
+    *   Create a database user (username/password).
+    *   Whitelist `0.0.0.0/0` (allow all IPs) or your backend host IP in "Network Access".
+    *   Get your connection string: `mongodb+srv://<username>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority`
 
-2.  **Migration (Required Code Changes)**:
-    *   The current backend uses `simple-db.ts` (JSON file). You need to replace this with a PostgreSQL adapter (e.g., using `prisma` or `mongoose` if you prefer MongoDB, but for Supabase use `postgres` or `prisma`).
-    *   *Action Item*: You will need to rewrite `backend/src/models/*.ts` to fetch data from Supabase instead of `db.json`.
+2.  **Configuration**:
+    *   The backend expects a `MONGODB_URI` environment variable.
 
 ---
 
@@ -46,7 +47,7 @@ Vercel Serverless functions freeze/kill these processes.
     *   `LIVEKIT_API_SECRET`: (From LiveKit Cloud)
     *   `LIVEKIT_URL`: (Your LiveKit WebSocket URL)
     *   `JWT_SECRET`: (Generate a secure random string)
-    *   `DATABASE_URL`: (Your Supabase Connection String)
+    *   `MONGODB_URI`: (Your MongoDB Atlas Connection String)
 
 8.  Deploy. You will get a URL like `https://my-backend.onrender.com`.
 
@@ -80,7 +81,7 @@ Vercel Serverless functions freeze/kill these processes.
 1.  **CORS**: Ensure your Backend (Render) allows requests from your Frontend (Vercel domain).
     *   Update `backend/src/index.ts`: `app.use(cors({ origin: 'https://your-vercel-app.vercel.app' }));`
 2.  **LiveKit**: Ensure your LiveKit cloud project is active.
-3.  **Database**: Ensure the backend can connect to Supabase.
+3.  **Database**: Ensure the backend can connect to MongoDB.
 
 ## Future Improvements (Serverless Migration)
 
