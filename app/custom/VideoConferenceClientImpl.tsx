@@ -70,12 +70,47 @@ export function VideoConferenceClientImpl(props: {
 
   useEffect(() => {
     if (e2eeSetupComplete) {
-      room.connect(props.liveKitUrl, props.token, connectOptions).catch((error) => {
-        console.error(error);
-      });
-      room.localParticipant.enableCameraAndMicrophone().catch((error) => {
-        console.error(error);
-      });
+      const connectAndSetup = async () => {
+        try {
+          await room.connect(props.liveKitUrl, props.token, connectOptions);
+          
+          // Try to enable camera/microphone, but don't fail if permission denied
+          try {
+            await room.localParticipant.enableCameraAndMicrophone();
+          } catch (err) {
+            console.warn('Could not enable camera/microphone:', err);
+            // Still connected, just as viewer if publish permissions denied
+          }
+        } catch (error) {
+          console.error('Failed to connect to room:', error);
+          // Attempt reconnection after delay
+          const reconnectDelay = setTimeout(() => {
+            connectAndSetup();
+          }, 3000);
+          return () => clearTimeout(reconnectDelay);
+        }
+      };
+
+      const cleanupConnection = connectAndSetup();
+      
+      // Handle connection state changes to maintain persistence
+      const handleConnectionStateChange = () => {
+        if (room.state === 'disconnected') {
+          console.log('Room disconnected, will attempt reconnection');
+          setTimeout(() => {
+            connectAndSetup();
+          }, 2000);
+        }
+      };
+      
+      room.on('connectionStateChanged', handleConnectionStateChange);
+      
+      return () => {
+        room.off('connectionStateChanged', handleConnectionStateChange);
+        if (cleanupConnection instanceof Promise) {
+          cleanupConnection.catch(() => {});
+        }
+      };
     }
   }, [room, props.liveKitUrl, props.token, connectOptions, e2eeSetupComplete]);
 

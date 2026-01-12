@@ -123,15 +123,20 @@ export async function GET(request: NextRequest) {
 
 function createParticipantToken(userInfo: AccessTokenOptions, roomName: string, role: string) {
   const at = new AccessToken(API_KEY, API_SECRET, userInfo);
-  at.ttl = '5m';
-  const canPublish = role === 'model';
+  at.ttl = '24h'; // Extend token TTL for persistent connections
+  
+  // Allow publish for models and admins
+  const canPublish = role === 'model' || role === 'admin';
+  
   const grant: VideoGrant = {
     room: roomName,
     roomJoin: true,
     canPublish: canPublish,
     canPublishData: true,
     canSubscribe: true,
+    canUpdateOwnMetadata: true, // Allow updating own metadata (avatar, name, etc)
   };
+  
   at.addGrant(grant);
   return at.toJwt();
 }
