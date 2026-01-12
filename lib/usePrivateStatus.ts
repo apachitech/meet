@@ -10,7 +10,7 @@ export function usePrivateStatus(modelUsername: string) {
 
   const refresh = () => {
     apiJson(`/api/private/status?modelUsername=${encodeURIComponent(modelUsername)}`)
-      .then(setState)
+      .then((data) => setState(data as PrivateState))
       .catch(console.error);
   };
 
