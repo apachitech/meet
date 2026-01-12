@@ -102,10 +102,11 @@ export const CustomControls = () => {
     <div
       style={{
         position: 'fixed',
-        bottom: isMobile ? '1rem' : '2rem',
+        top: isMobile ? '60px' : 'auto',
+        bottom: isMobile ? 'auto' : '2rem',
         left: isMobile ? '0.5rem' : '50%',
         right: isMobile ? '0.5rem' : 'auto',
-        transform: isMobile ? `translateY(${isVisible ? '0' : '150%'})` : `translateX(-50%) translateY(${isVisible ? '0' : '150%'})`,
+        transform: isMobile ? `translateY(${isVisible ? '0' : '-150%'})` : `translateX(-50%) translateY(${isVisible ? '0' : '150%'})`,
         display: 'flex',
         gap: buttonGap,
         padding: padding,

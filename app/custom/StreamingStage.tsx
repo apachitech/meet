@@ -19,6 +19,8 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
   const { localParticipant } = useLocalParticipant();
   const [isVideoMaximized, setIsVideoMaximized] = useState(true);
   const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [viewers, setViewers] = useState(0);
+  const [followers, setFollowers] = useState(0);
   
   // Listen for screen resize
   useEffect(() => {
@@ -32,9 +34,9 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
   
   // Responsive PiP sizing
   const pipWidth = isMobile ? '120px' : isTablet ? '160px' : '200px';
-  const pipBottom = isMobile ? '60px' : '100px';
-  const pipLeft = isMobile ? '8px' : '15px';
+  const pipBottom = isMobile ? '20px' : '100px';
   const pipRight = isMobile ? '8px' : '15px';
+  const pipLeft = isMobile ? '8px' : '15px';
   const pipBorderRadius = isMobile ? '8px' : '12px';
   
   // Get all video tracks
@@ -49,6 +51,17 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
     window.addEventListener('TOGGLE_VIDEO_MAXIMIZE', handleToggleMaximize);
     return () => window.removeEventListener('TOGGLE_VIDEO_MAXIMIZE', handleToggleMaximize);
   }, []);
+
+  // Listen for viewer count updates
+  useEffect(() => {
+    const handleViewerUpdate = (event: any) => {
+      setViewers(event.detail?.viewers || tracks.length);
+    };
+    window.addEventListener('VIEWER_COUNT_UPDATE', handleViewerUpdate);
+    // Set initial viewer count based on tracks
+    setViewers(tracks.length);
+    return () => window.removeEventListener('VIEWER_COUNT_UPDATE', handleViewerUpdate);
+  }, [tracks.length]);
 
   // 1. Identify Broadcaster Tracks
   const broadcasterTracks = useMemo(() => {
@@ -155,6 +168,47 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
       background: '#000',
       overflow: 'hidden'
     }}>
+       {/* Broadcast Info Header */}
+       <div style={{
+         position: 'absolute',
+         top: isMobile ? '70px' : '20px',
+         left: '20px',
+         display: 'flex',
+         gap: '12px',
+         zIndex: 40,
+         flexWrap: 'wrap'
+       }}>
+         <div style={{
+           background: 'rgba(0, 0, 0, 0.6)',
+           border: '1px solid rgba(255, 255, 255, 0.2)',
+           padding: isMobile ? '6px 10px' : '8px 12px',
+           borderRadius: '20px',
+           color: 'white',
+           fontSize: isMobile ? '0.75rem' : '0.85rem',
+           fontWeight: '600',
+           display: 'flex',
+           alignItems: 'center',
+           gap: '6px',
+           backdropFilter: 'blur(10px)'
+         }}>
+           👁️ {viewers} viewers
+         </div>
+         <div style={{
+           background: 'rgba(0, 0, 0, 0.6)',
+           border: '1px solid rgba(255, 255, 255, 0.2)',
+           padding: isMobile ? '6px 10px' : '8px 12px',
+           borderRadius: '20px',
+           color: 'white',
+           fontSize: isMobile ? '0.75rem' : '0.85rem',
+           fontWeight: '600',
+           display: 'flex',
+           alignItems: 'center',
+           gap: '6px',
+           backdropFilter: 'blur(10px)'
+         }}>
+           👥 {followers} followers
+         </div>
+       </div>
        {/* Main Stage */}
        {mainTrack ? (
          <VideoTrack 
