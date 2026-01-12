@@ -323,6 +323,12 @@ export const OverlayChat = () => {
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                     onTouchStart={(e) => e.stopPropagation()}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(236, 72, 153, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(236, 72, 153, 0.3)';
+                    }}
                     style={{
                         background: 'rgba(236, 72, 153, 0.3)',
                         border: '1px solid rgba(236, 72, 153, 0.5)',
@@ -336,8 +342,7 @@ export const OverlayChat = () => {
                         cursor: 'pointer',
                         boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
                         fontSize: isMobile ? '14px' : '16px',
-                        transition: 'all 0.2s',
-                        hover: { background: 'rgba(236, 72, 153, 0.5)' }
+                        transition: 'all 0.2s'
                     }}
                     title="Like broadcast"
                 >
