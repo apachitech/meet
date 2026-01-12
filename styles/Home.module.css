@@ -238,3 +238,157 @@
     display: block;
   }
 }
+
+/* Mobile & Tablet Responsiveness */
+@media screen and (max-width: 1023px) {
+  .navbar {
+    padding: 0 1rem;
+  }
+
+  .logo {
+    font-size: 1.2rem;
+  }
+
+  .navActions {
+    gap: 0.75rem;
+  }
+
+  .username {
+    font-size: 0.8rem;
+  }
+
+  .logoutBtn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  .sidebar {
+    width: 250px;
+    padding: 0.75rem;
+  }
+
+  .sidebar h3 {
+    font-size: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .sidebarItem {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media screen and (max-width: 639px) {
+  .main {
+    padding-bottom: 0;
+  }
+
+  .navbar {
+    padding: 0 0.75rem;
+    height: 50px;
+  }
+
+  .logo {
+    font-size: 1rem;
+    letter-spacing: 0px;
+  }
+
+  .logo span {
+    display: none;
+  }
+
+  .navActions {
+    gap: 0.5rem;
+  }
+
+  .username {
+    display: none;
+  }
+
+  .logoutBtn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .container {
+    flex-direction: column;
+  }
+
+  .mainContent {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  /* Stream Cards */
+  .streamGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+
+  .streamCard {
+    height: 200px;
+  }
+
+  .cardOverlay {
+    padding: 30px 8px 8px 8px;
+  }
+
+  .cardOverlay h4 {
+    font-size: 0.9rem;
+  }
+
+  .viewers {
+    font-size: 0.7rem;
+  }
+
+  /* Ensure proper spacing for fixed controls */
+  .main {
+    padding-bottom: 70px;
+  }
+}
+
+/* Extra small phones (< 480px) */
+@media screen and (max-width: 479px) {
+  .navbar {
+    height: 45px;
+  }
+
+  .logo {
+    font-size: 0.9rem;
+  }
+
+  .mainContent {
+    padding: 0.5rem;
+  }
+
+  .streamGrid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .streamCard {
+    height: 180px;
+  }
+
+  .cardOverlay {
+    padding: 25px 6px 6px 6px;
+  }
+
+  .cardOverlay h4 {
+    font-size: 0.85rem;
+  }
+
+  .viewers {
+    font-size: 0.65rem;
+  }
+
+  .main {
+    padding-bottom: 65px;
+  }
+}

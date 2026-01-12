@@ -7,7 +7,7 @@ import {
   useLocalParticipant
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 
 interface StreamingStageProps {
   roomName: string;
@@ -17,10 +17,38 @@ interface StreamingStageProps {
 
 export function StreamingStage({ roomName, privateState, battleState }: StreamingStageProps) {
   const { localParticipant } = useLocalParticipant();
+  const [isVideoMaximized, setIsVideoMaximized] = useState(true);
+  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  
+  // Listen for screen resize
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = screenWidth < 640;
+  const isTablet = screenWidth < 1024;
+  
+  // Responsive PiP sizing
+  const pipWidth = isMobile ? '120px' : isTablet ? '160px' : '200px';
+  const pipBottom = isMobile ? '60px' : '100px';
+  const pipLeft = isMobile ? '8px' : '15px';
+  const pipRight = isMobile ? '8px' : '15px';
+  const pipBorderRadius = isMobile ? '8px' : '12px';
   
   // Get all video tracks
   const tracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare]);
   const audioTracks = useTracks([Track.Source.Microphone]);
+
+  // Listen for maximize/minimize event
+  useEffect(() => {
+    const handleToggleMaximize = (event: any) => {
+      setIsVideoMaximized(event.detail?.isMaximized ?? true);
+    };
+    window.addEventListener('TOGGLE_VIDEO_MAXIMIZE', handleToggleMaximize);
+    return () => window.removeEventListener('TOGGLE_VIDEO_MAXIMIZE', handleToggleMaximize);
+  }, []);
 
   // 1. Identify Broadcaster Tracks
   const broadcasterTracks = useMemo(() => {
@@ -51,18 +79,31 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
           position: 'relative', 
           background: '#000',
           overflow: 'hidden',
-          display: 'flex'
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row'
         }}>
            {/* Left: Broadcaster (Challenger) */}
-           <div style={{ flex: 1, position: 'relative', borderRight: '2px solid white' }}>
+           <div style={{ flex: 1, position: 'relative', borderRight: isMobile ? 'none' : '3px solid rgba(255,255,255,0.2)', borderBottom: isMobile ? '3px solid rgba(255,255,255,0.2)' : 'none' }}>
              {broadcasterCam || broadcasterScreen ? (
                  <VideoTrack trackRef={(broadcasterCam || broadcasterScreen)!} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
              ) : (
                  <div style={{ width: '100%', height: '100%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                    Challenger Camera Off
+                    🎥 Challenger Camera Off
                  </div>
              )}
-             <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(255,0,0,0.7)', padding: '5px 10px', borderRadius: '4px', color: 'white', fontWeight: 'bold' }}>
+             <div style={{ 
+               position: 'absolute', 
+               top: isMobile ? '10px' : '15px', 
+               left: isMobile ? '10px' : '15px', 
+               background: 'linear-gradient(135deg, rgba(220,38,38,0.9) 0%, rgba(127,29,29,0.9) 100%)', 
+               padding: isMobile ? '6px 12px' : '8px 16px', 
+               borderRadius: '20px', 
+               color: 'white', 
+               fontWeight: 'bold',
+               fontSize: isMobile ? '0.8rem' : '0.9rem',
+               backdropFilter: 'blur(10px)',
+               border: '1px solid rgba(255,255,255,0.2)'
+             }}>
                 {battleState.challenger}
              </div>
            </div>
@@ -73,10 +114,22 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
                  <VideoTrack trackRef={opponentTrack} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
              ) : (
                  <div style={{ width: '100%', height: '100%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                    Opponent Camera Off
+                    🎥 Opponent Camera Off
                  </div>
              )}
-             <div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,255,0.7)', padding: '5px 10px', borderRadius: '4px', color: 'white', fontWeight: 'bold' }}>
+             <div style={{ 
+               position: 'absolute', 
+               top: isMobile ? '10px' : '15px', 
+               right: isMobile ? '10px' : '15px', 
+               background: 'linear-gradient(135deg, rgba(30,58,138,0.9) 0%, rgba(15,23,42,0.9) 100%)', 
+               padding: isMobile ? '6px 12px' : '8px 16px', 
+               borderRadius: '20px', 
+               color: 'white', 
+               fontWeight: 'bold',
+               fontSize: isMobile ? '0.8rem' : '0.9rem',
+               backdropFilter: 'blur(10px)',
+               border: '1px solid rgba(255,255,255,0.2)'
+             }}>
                 {battleState.opponent}
              </div>
            </div>
@@ -129,42 +182,57 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
          </div>
        )}
 
-       {/* Broadcaster Camera PiP (if Screen Sharing) */}
-       {pipTrack && (
+       {/* Broadcaster Camera PiP (if Screen Sharing) - Hidden when maximized */}
+       {pipTrack && isVideoMaximized && (
          <div style={{
            position: 'absolute',
-           bottom: '20px',
-           left: '20px',
-           width: '160px',
+           bottom: pipBottom,
+           left: pipLeft,
+           width: pipWidth,
            aspectRatio: '16/9',
-           borderRadius: '8px',
+           borderRadius: pipBorderRadius,
            overflow: 'hidden',
-           boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-           border: '2px solid white',
-           zIndex: 40,
-           background: '#000'
+           boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+           border: '2px solid rgba(59, 130, 246, 0.5)',
+           zIndex: 35,
+           background: '#000',
+           transition: 'all 0.3s ease-in-out'
          }}>
            <VideoTrack 
              trackRef={pipTrack}
              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
            />
+           <div style={{
+             position: 'absolute',
+             bottom: 0,
+             left: 0,
+             right: 0,
+             padding: isMobile ? '4px 6px' : '6px 10px',
+             background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)',
+             color: 'white',
+             fontSize: isMobile ? '0.7rem' : '0.8rem',
+             fontWeight: '600'
+           }}>
+             Your Camera
+           </div>
          </div>
        )}
 
-       {/* Private Show Guest (PiP) */}
-       {payerTrack && (
+       {/* Private Show Guest (PiP) - Hidden when maximized */}
+       {payerTrack && isVideoMaximized && (
          <div style={{
            position: 'absolute',
-           bottom: '100px',
-           right: '20px',
-           width: '180px',
+           bottom: pipBottom,
+           right: pipRight,
+           width: pipWidth,
            aspectRatio: '16/9',
-           borderRadius: '12px',
+           borderRadius: pipBorderRadius,
            overflow: 'hidden',
-           boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-           border: '2px solid var(--accent-primary)',
-           zIndex: 30,
-           background: '#000'
+           boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+           border: '2px solid rgba(236, 72, 153, 0.6)',
+           zIndex: 35,
+           background: '#000',
+           transition: 'all 0.3s ease-in-out'
          }}>
            <VideoTrack 
              trackRef={payerTrack}
@@ -175,13 +243,13 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
              bottom: 0,
              left: 0,
              right: 0,
-             padding: '4px 8px',
-             background: 'rgba(0,0,0,0.7)',
-             color: 'white',
-             fontSize: '0.75rem',
-             fontWeight: 'bold'
+             padding: isMobile ? '4px 6px' : '6px 10px',
+             background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)',
+             color: '#ec4899',
+             fontSize: isMobile ? '0.7rem' : '0.8rem',
+             fontWeight: '600'
            }}>
-             {payerTrack.participant.name} (VIP)
+             💎 {payerTrack.participant.name}
            </div>
          </div>
        )}
@@ -189,7 +257,7 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
        {/* Audio Tracks (Invisible) */}
        {audioTracks.map(track => (
           <AudioTrack key={track.publication.trackSid} trackRef={track} />
-           ))}
+       ))}
     </div>
   );
 }

@@ -18,8 +18,19 @@ export const OverlayChat = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [visible, setVisible] = useState(true);
   const [draft, setDraft] = useState('');
+  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const touchStartX = useRef(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const isMobile = screenWidth < 640;
+  const isTablet = screenWidth < 1024;
+
+  // Listen for screen resize
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -78,10 +89,11 @@ export const OverlayChat = () => {
         className="overlay-chat-container"
         style={{
             position: 'absolute',
-            bottom: '100px',
-            left: '20px',
+            bottom: isMobile ? '60px' : '100px',
+            left: isMobile ? '8px' : '20px',
             zIndex: 30,
-            width: '350px',
+            width: isMobile ? 'calc(100% - 16px)' : isTablet ? '280px' : '350px',
+            maxWidth: '100%',
             pointerEvents: 'auto',
             display: 'flex',
             flexDirection: 'column',
@@ -108,14 +120,14 @@ export const OverlayChat = () => {
         
         {visible && (
             <div style={{
-                maxHeight: '300px',
+                maxHeight: isMobile ? '200px' : '300px',
                 width: '100%',
                 overflowY: 'auto',
                 maskImage: 'linear-gradient(to top, black 80%, transparent 100%)',
                 paddingBottom: '10px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px'
+                gap: isMobile ? '6px' : '8px'
             }}>
                 <div 
                     onClick={(e) => { e.stopPropagation(); setVisible(false); }}
@@ -125,7 +137,7 @@ export const OverlayChat = () => {
                         padding: '4px 10px',
                         borderRadius: '20px',
                         color: 'rgba(255,255,255,0.8)',
-                        fontSize: '0.8rem',
+                        fontSize: isMobile ? '0.7rem' : '0.8rem',
                         cursor: 'pointer',
                         border: '1px solid rgba(255,255,255,0.2)',
                         marginBottom: '4px',
@@ -143,11 +155,11 @@ export const OverlayChat = () => {
                         return (
                             <div key={`gift-${idx}`} style={{
                                 background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.95), rgba(255, 165, 0, 0.95))',
-                                padding: '10px 16px',
+                                padding: isMobile ? '8px 12px' : '10px 16px',
                                 borderRadius: '16px',
                                 color: '#7c2d12',
                                 width: 'fit-content',
-                                fontSize: '0.95rem',
+                                fontSize: isMobile ? '0.85rem' : '0.95rem',
                                 boxShadow: '0 8px 20px rgba(255, 215, 0, 0.3)',
                                 border: '2px solid rgba(255,255,255,0.5)',
                                 animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
@@ -156,14 +168,15 @@ export const OverlayChat = () => {
                                 alignItems: 'center',
                                 gap: '4px',
                                 textAlign: 'center',
-                                minWidth: '200px',
+                                minWidth: isMobile ? '160px' : '200px',
+                                maxWidth: '100%',
                                 transformOrigin: 'bottom left'
                             }}>
-                                <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.1))' }}>🎁 ✨</div>
+                                <div style={{ fontSize: isMobile ? '1.2rem' : '1.5rem', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.1))' }}>🎁 ✨</div>
                                 <div>
                                     <b>{msg.sender}</b> sent <span style={{ textTransform: 'uppercase', fontWeight: 800 }}>{msg.giftName}</span>
                                 </div>
-                                <div style={{ fontSize: '0.8rem', fontWeight: 600, opacity: 0.8, background: 'rgba(255,255,255,0.3)', padding: '2px 8px', borderRadius: '10px' }}>
+                                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 600, opacity: 0.8, background: 'rgba(255,255,255,0.3)', padding: '2px 8px', borderRadius: '10px' }}>
                                     💎 {msg.price} tokens
                                 </div>
                             </div>
@@ -173,17 +186,17 @@ export const OverlayChat = () => {
                     return (
                         <div key={msg.timestamp} style={{ 
                             background: 'rgba(0,0,0,0.4)',
-                            padding: '6px 10px',
+                            padding: isMobile ? '5px 8px' : '6px 10px',
                             borderRadius: '12px',
                             backdropFilter: 'blur(4px)',
                             width: 'fit-content',
                             maxWidth: '100%',
                             wordWrap: 'break-word'
                         }}>
-                            <span style={{ fontWeight: '700', color: getUsernameColor(msg.from?.name || 'Guest'), marginRight: '6px' }}>
+                            <span style={{ fontWeight: '700', color: getUsernameColor(msg.from?.name || 'Guest'), marginRight: '6px', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                                 {msg.from?.name || 'Guest'}:
                             </span>
-                            <span style={{ color: 'white', fontSize: '0.95rem' }}>{msg.message}</span>
+                            <span style={{ color: 'white', fontSize: isMobile ? '0.85rem' : '0.95rem' }}>{msg.message}</span>
                         </div>
                     );
                 })}
@@ -199,16 +212,16 @@ export const OverlayChat = () => {
         {visible && (
              <form onSubmit={handleSend} style={{ 
                  width: '100%', 
-                 marginTop: '8px', 
+                 marginTop: isMobile ? '6px' : '8px', 
                  display: 'flex', 
-                 gap: '8px',
+                 gap: isMobile ? '6px' : '8px',
                  pointerEvents: 'auto'
              }}>
                 <input 
                     type="text" 
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    placeholder="Type a message..."
+                    placeholder={isMobile ? "Message..." : "Type a message..."}
                     onMouseDown={(e) => e.stopPropagation()}
                     onTouchStart={(e) => e.stopPropagation()}
                     style={{
@@ -216,7 +229,7 @@ export const OverlayChat = () => {
                         background: 'rgba(0,0,0,0.6)',
                         border: '1px solid rgba(255,255,255,0.2)',
                         borderRadius: '20px',
-                        padding: '8px 12px',
+                        padding: isMobile ? '6px 10px' : '8px 12px',
                         color: 'white',
                         outline: 'none',
                         fontSize: '14px' // Prevents zoom on iOS
@@ -230,14 +243,15 @@ export const OverlayChat = () => {
                         background: 'var(--accent-primary)',
                         border: 'none',
                         borderRadius: '50%',
-                        width: '36px',
-                        height: '36px',
+                        width: isMobile ? '32px' : '36px',
+                        height: isMobile ? '32px' : '36px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'white',
                         cursor: 'pointer',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                        fontSize: isMobile ? '14px' : '16px'
                     }}
                 >
                     ➤
