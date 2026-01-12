@@ -14,11 +14,18 @@ export async function apiFetch(
   path: string,
   opts: RequestInit & { requireAuth?: boolean } = {},
 ) {
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(opts.headers || {}),
-    ...(opts.requireAuth ? authHeader() : authHeader()),
   };
+  
+  if (opts.headers) {
+    const existingHeaders = opts.headers as Record<string, string>;
+    Object.assign(headers, existingHeaders);
+  }
+  
+  const authHeaders = opts.requireAuth ? authHeader() : authHeader();
+  Object.assign(headers, authHeaders);
+
   const res = await fetch(
     path.startsWith('http') ? path : `${API_BASE}${path}`,
     { ...opts, headers },
