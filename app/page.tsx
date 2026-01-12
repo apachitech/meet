@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { api, apiJson } from '../lib/api';
 import styles from '../styles/Home.module.css';
 import { useSiteConfig } from './components/SiteConfigProvider';
 import { Footer } from './components/Footer';
@@ -19,9 +20,7 @@ export default function Page() {
     if (storedToken) {
       setToken(storedToken);
       // Fetch Profile
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
-        headers: { Authorization: `Bearer ${storedToken}` },
-      })
+      api.get('/api/profile', true)
         .then((res) => {
           if (!res.ok) {
             if (res.status === 401 || res.status === 403 || res.status === 404) {
@@ -41,8 +40,7 @@ export default function Page() {
     }
 
     // Fetch Models
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/models`)
-      .then((res) => res.json())
+    apiJson('/api/models')
       .then((data) => setModels(data))
       .catch(console.error);
   }, [router]);

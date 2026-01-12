@@ -9,7 +9,7 @@ import connectDB from './db.js';
 import { sendGift, getGifts } from './gifts.js';
 import { sendLike } from './likes.js';
 import { getModels } from './models.js';
-import { getUserByUsername } from './users.js';
+import { getUserByUsername, incrementViewCount, followUser, unfollowUser, isFollowing } from './users.js';
 import { User } from './models/User.js';
 import { startPrivateShow, stopPrivateShow, getPrivateStatus, initPrivateShowMonitor } from './private-shows.js';
 import { getBattleStatus, startBattle, stopBattle } from './battles.js';
@@ -127,6 +127,10 @@ app.post('/api/like', sendLike);
 app.get('/api/gifts', getGifts);
 app.get('/api/models', getModels);
 app.get('/api/users/:username', getUserByUsername);
+app.post('/api/users/:username/view', incrementViewCount);
+app.post('/api/users/:username/follow', authenticateToken, followUser);
+app.post('/api/users/:username/unfollow', authenticateToken, unfollowUser);
+app.get('/api/users/:username/is-following', authenticateToken, isFollowing);
 
 // Private Show Routes
 app.post('/api/private/start', authenticateToken, startPrivateShow);

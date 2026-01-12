@@ -38,6 +38,9 @@ import { OverlayChat } from '@/app/custom/OverlayChat';
 import { CustomControls } from '@/app/custom/CustomControls';
 import { SpectatorRow } from '@/app/custom/SpectatorRow';
 import { TokenStore } from '@/app/custom/TokenStore';
+import { api, API_BASE } from '../../../lib/api';
+import { usePrivateStatus } from '../../../lib/usePrivateStatus';
+import { LiveStatsBar } from '@/app/custom/LiveStatsBar';
 
 const CONN_DETAILS_ENDPOINT =
   process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
@@ -78,9 +81,7 @@ export function PageClientImpl(props: {
       }
 
       // Fetch profile to set permissions correctly
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      api.get('/api/profile', true)
         .then((res) => {
           if (!res.ok) {
             if (res.status === 401 || res.status === 403 || res.status === 404) {
@@ -109,6 +110,16 @@ export function PageClientImpl(props: {
        setUserRole('user');
        setUserChoices((prev) => ({ ...prev, videoEnabled: false, audioEnabled: false }));
     }
+
+    // Increment view count in DB for non-broadcaster viewers
+    try {
+      const currentUser = localStorage.getItem('token')
+        ? (jwtDecode(localStorage.getItem('token')!) as any)?.username
+        : null;
+      if (currentUser !== props.roomName) {
+        fetch(`${API_BASE}/api/users/${props.roomName}/view`, { method: 'POST' }).catch(() => {});
+      }
+    } catch {}
 
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
     url.searchParams.append('roomName', props.roomName);
@@ -163,8 +174,7 @@ function StreamStats({ roomName }: { roomName: string }) {
   const { message: giftMessage } = useDataChannel('gift');
 
   useEffect(() => {
-    // Fetch initial stats
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/${roomName}`)
+    fetch(`${API_BASE}/api/users/${roomName}`)
       .then(res => res.json())
       .then(data => {
         if (data) {
@@ -254,11 +264,7 @@ function LikeButton({ roomName }: { roomName: string }) {
 
     // Persist via API
     try {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/like`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipientUsername: roomName })
-      });
+      api.post('/api/like', { recipientUsername: roomName }, true);
     } catch(e) { console.error(e); }
   };
 
@@ -367,18 +373,10 @@ function VideoConferenceComponent(props: {
   // Private Show Logic
   const [privateState, setPrivateState] = React.useState<{ isPrivate: boolean; payer?: string }>({ isPrivate: false });
 
-  React.useEffect(() => {
-    const checkStatus = () => {
-       fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/private/status?modelUsername=${props.roomName}`)
-         .then(res => res.json())
-         .then(data => setPrivateState(data))
-         .catch(console.error);
-    };
-    checkStatus();
-    const interval = setInterval(checkStatus, 3000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.roomName]);
+  const { state: hookPrivateState } = usePrivateStatus(props.roomName);
+  useEffect(() => {
+    setPrivateState(hookPrivateState);
+  }, [hookPrivateState]);
 
   const isOwner = props.userChoices.username === props.roomName;
   const isModel = props.userRole === 'model';
@@ -491,7 +489,7 @@ function VideoConferenceComponent(props: {
         <KeyboardShortcuts />
         <StreamingStage roomName={props.roomName} privateState={privateState} />
         <OverlayChat />
-        <StreamStats roomName={props.roomName} />
+        <LiveStatsBar roomName={props.roomName} />
         <SpectatorRow payerName={privateState.payer} />
         <LikeButton roomName={props.roomName} />
         <CustomControls />
@@ -515,9 +513,7 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
   const fetchBalance = () => {
     const token = localStorage.getItem('token');
     if (token) {
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        api.get('/api/profile', true)
         .then(res => res.json())
         .then(data => {
             if (data && typeof data.tokenBalance === 'number') setTokenBalance(data.tokenBalance);
@@ -526,32 +522,18 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
     }
   };
 
+  const { state: hookStatus, refresh: refreshPrivate } = usePrivateStatus(roomName);
   useEffect(() => {
     fetchBalance();
-    const checkStatus = () => {
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/private/status?modelUsername=${roomName}`)
-          .then(res => res.json())
-          .then(data => setPrivateState(data))
-          .catch(console.error);
-    };
-    checkStatus();
-    const interval = setInterval(checkStatus, 3000);
-    return () => clearInterval(interval);
-  }, [roomName]);
+    setPrivateState(hookStatus);
+  }, [roomName, hookStatus]);
 
   const handleSendGift = async (giftId: string, price: number, name: string, recipient: RemoteParticipant) => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/gift`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ recipientId: recipient.identity, giftId, roomName }),
-      });
+      const res = await api.post('/api/gift', { recipientId: recipient.identity, giftId, roomName }, true);
       const data = await res.json();
       if (res.ok) {
         setTokenBalance(data.senderBalance);
@@ -598,22 +580,12 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
     setTokenBalance(prev => Math.max(0, prev - 50));
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/private/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ modelUsername: roomName }),
-      });
+      const res = await api.post('/api/private/start', { modelUsername: roomName }, true);
       const data = await res.json();
       if (res.ok) {
         setTokenBalance(data.balance);
         alert('Private show started!');
-        // Refresh private status immediately
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/private/status?modelUsername=${roomName}`)
-         .then(res => res.json())
-         .then(data => setPrivateState(data));
+        refreshPrivate();
       } else {
         setTokenBalance(oldBalance); // Revert on failure
         alert(data.message);

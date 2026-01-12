@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { api, apiJson, apiFetch } from '../../lib/api';
 
 const GIFT_ICONS = [
     '🌹', '💎', '🔥', '💖', '🍾', '🏎️', '🏰', '🚀', 
@@ -34,9 +35,7 @@ export default function AdminPage() {
         }
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/api/profile', true);
             const data = await res.json();
             if (data.role !== 'admin') {
                 alert('Access Denied: Admins only');
@@ -58,39 +57,25 @@ export default function AdminPage() {
 
   const fetchData = async (token: string) => {
     // Fetch Settings
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/settings`, {
-        headers: { Authorization: `Bearer ${token}` }
-    }).then(res => res.json()).then(setSettings);
+    api.get('/api/admin/settings', true).then(res => res.json()).then(setSettings);
 
     // Fetch Users
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` }
-    }).then(res => res.json()).then(setUsers);
+    api.get('/api/admin/users', true).then(res => res.json()).then(setUsers);
 
     // Fetch Gifts
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/gifts`, {
-        headers: { Authorization: `Bearer ${token}` }
-    }).then(res => res.json()).then(setGifts);
+    api.get('/api/admin/gifts', true).then(res => res.json()).then(setGifts);
   };
 
   const saveSettings = async () => {
     const token = localStorage.getItem('token');
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(settings)
-    });
+    await api.put('/api/admin/settings', settings, true);
     alert('Settings Saved');
     window.location.reload();
   };
 
   const updateUserRole = async (id: string, role: string) => {
     const token = localStorage.getItem('token');
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/users/${id}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role })
-    });
+    await api.put(`/api/admin/users/${id}/role`, { role }, true);
     // Refresh
     const newUsers = users.map(u => u._id === id ? { ...u, role } : u);
     setUsers(newUsers);
@@ -107,11 +92,7 @@ export default function AdminPage() {
       };
 
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/gifts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data)
-      });
+      const res = await api.post('/api/admin/gifts', data, true);
       const newGift = await res.json();
       setGifts([...gifts, newGift]);
       setNewGiftIcon('');
@@ -121,10 +102,7 @@ export default function AdminPage() {
   const deleteGift = async (id: string) => {
       if(!confirm('Delete this gift?')) return;
       const token = localStorage.getItem('token');
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/gifts/${id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiFetch(`/api/admin/gifts/${id}`, { method: 'DELETE', requireAuth: true });
       setGifts(gifts.filter(g => g.id !== id));
   };
 

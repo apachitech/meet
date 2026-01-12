@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { API_BASE } from '../../lib/api';
 
 interface SiteSettings {
   siteName: string;
@@ -17,11 +18,10 @@ export const SiteConfigProvider = ({ children }: { children: React.ReactNode }) 
   });
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/settings`)
+    fetch(`${API_BASE}/api/admin/settings`)
       .then(res => res.json())
       .then(data => {
         setSettings(data);
-        // Apply CSS Variables
         document.documentElement.style.setProperty('--accent-primary', data.primaryColor);
         if (data.backgroundUrl) {
             document.documentElement.style.setProperty('--bg-image', `url(${data.backgroundUrl})`);

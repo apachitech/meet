@@ -24,6 +24,7 @@ export const OverlayChat = () => {
   const [totalTokens, setTotalTokens] = useState(0);
   const touchStartX = useRef(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const isMobile = screenWidth < 640;
   const isTablet = screenWidth < 1024;
@@ -45,7 +46,11 @@ export const OverlayChat = () => {
       if (message && message.payload) {
           try {
             const payload = JSON.parse(new TextDecoder().decode(message.payload));
-            setNotifications(prev => [...prev, { ...payload, timestamp: Date.now(), type: 'gift' }]);
+            setNotifications(prev => [
+              ...prev, 
+              { ...payload, timestamp: Date.now(), type: 'gift' },
+              { type: 'gift_text', text: `${payload.sender} sent ${payload.recipient} ${payload.giftName} (${payload.price} tokens)`, timestamp: Date.now() }
+            ]);
             // Add tokens from gift
             if (payload.price) {
               setTotalTokens(prev => prev + payload.price);
@@ -67,6 +72,19 @@ export const OverlayChat = () => {
     const handleToggle = () => setVisible(prev => !prev);
     window.addEventListener('TOGGLE_CHAT_VISIBILITY', handleToggle);
     return () => window.removeEventListener('TOGGLE_CHAT_VISIBILITY', handleToggle);
+  }, []);
+
+  useEffect(() => {
+    const handlePrefill = (e: any) => {
+      const text = e.detail?.text || '';
+      setVisible(true);
+      setDraft(text);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+    };
+    window.addEventListener('CHAT_PREFILL', handlePrefill);
+    return () => window.removeEventListener('CHAT_PREFILL', handlePrefill);
   }, []);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -102,88 +120,21 @@ export const OverlayChat = () => {
         style={{
             position: 'absolute',
             bottom: isMobile ? '20px' : '100px',
-            right: isMobile ? '8px' : '20px',
+            left: isMobile ? '8px' : '20px',
             zIndex: 30,
             width: isMobile ? 'calc(100% - 16px)' : isTablet ? '280px' : '350px',
             maxWidth: '100%',
             pointerEvents: 'auto',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'flex-end'
+            alignItems: 'flex-start'
         }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleTouchStart}
         onMouseUp={handleTouchEnd}
     >
-        {/* Stats Header */}
-        {visible && (
-            <div style={{
-                display: 'flex',
-                gap: isMobile ? '8px' : '12px',
-                width: '100%',
-                marginBottom: '8px',
-                flexWrap: 'wrap',
-                justifyContent: 'flex-end'
-            }}>
-                <div style={{
-                    background: 'rgba(59, 130, 246, 0.2)',
-                    border: '1px solid rgba(59, 130, 246, 0.4)',
-                    padding: isMobile ? '4px 8px' : '6px 10px',
-                    borderRadius: '16px',
-                    color: '#3b82f6',
-                    fontSize: isMobile ? '0.7rem' : '0.8rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                }}>
-                    💬 {chatMessages.length}
-                </div>
-                <div style={{
-                    background: 'rgba(236, 72, 153, 0.2)',
-                    border: '1px solid rgba(236, 72, 153, 0.4)',
-                    padding: isMobile ? '4px 8px' : '6px 10px',
-                    borderRadius: '16px',
-                    color: '#ec4899',
-                    fontSize: isMobile ? '0.7rem' : '0.8rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                }}>
-                    ❤️ {likes}
-                </div>
-                <div style={{
-                    background: 'rgba(34, 197, 94, 0.2)',
-                    border: '1px solid rgba(34, 197, 94, 0.4)',
-                    padding: isMobile ? '4px 8px' : '6px 10px',
-                    borderRadius: '16px',
-                    color: '#22c55e',
-                    fontSize: isMobile ? '0.7rem' : '0.8rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                }}>
-                    👥 {followers}
-                </div>
-                <div style={{
-                    background: 'rgba(251, 146, 60, 0.2)',
-                    border: '1px solid rgba(251, 146, 60, 0.4)',
-                    padding: isMobile ? '4px 8px' : '6px 10px',
-                    borderRadius: '16px',
-                    color: '#fb923c',
-                    fontSize: isMobile ? '0.7rem' : '0.8rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                }}>
-                    🪙 {totalTokens}
-                </div>
-            </div>
-        )}
+        
         {!visible && (
             <div style={{
                 background: 'rgba(0,0,0,0.5)',
@@ -230,6 +181,7 @@ export const OverlayChat = () => {
                 </div>
                 {allMessages.map((msg, idx) => {
                     const isGift = (msg as any).type === 'gift';
+                    const isGiftText = (msg as any).type === 'gift_text';
                     
                     if (isGift) {
                         return (
@@ -259,6 +211,25 @@ export const OverlayChat = () => {
                                 <div style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', fontWeight: 700, background: 'rgba(0,0,0,0.3)', padding: '4px 10px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <span>🪙</span> <span>{msg.price} Tokens</span>
                                 </div>
+                            </div>
+                        );
+                    }
+                    if (isGiftText) {
+                        return (
+                            <div key={`gifttext-${idx}`} style={{ 
+                                background: 'rgba(0,0,0,0.4)',
+                                padding: isMobile ? '5px 8px' : '6px 10px',
+                                borderRadius: '12px',
+                                backdropFilter: 'blur(4px)',
+                                width: 'fit-content',
+                                maxWidth: '100%',
+                                wordWrap: 'break-word',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                            }}>
+                                <span style={{ fontSize: isMobile ? '1rem' : '1.1rem' }}>🎁</span>
+                                <span style={{ color: 'white', fontSize: isMobile ? '0.85rem' : '0.95rem' }}>{(msg as any).text}</span>
                             </div>
                         );
                     }
@@ -297,11 +268,39 @@ export const OverlayChat = () => {
                  gap: isMobile ? '4px' : '6px',
                  pointerEvents: 'auto'
              }}>
+                <button 
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        window.dispatchEvent(new CustomEvent('SHOW_CONTROLS'));
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    style={{
+                        background: 'rgba(255,255,255,0.15)',
+                        border: '1px solid rgba(255,255,255,0.25)',
+                        borderRadius: '50%',
+                        width: isMobile ? '32px' : '36px',
+                        height: isMobile ? '32px' : '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                        fontSize: isMobile ? '14px' : '16px',
+                        flexShrink: 0
+                    }}
+                    title="Broadcast controls"
+                >
+                    ⚙️
+                </button>
                 <input 
                     type="text" 
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     placeholder={isMobile ? "Message or ❤️..." : "Message or click ❤️ to like..."}
+                    ref={inputRef}
                     onMouseDown={(e) => e.stopPropagation()}
                     onTouchStart={(e) => e.stopPropagation()}
                     style={{

@@ -3,6 +3,7 @@
 import { useRemoteParticipants, useRoomContext, useLocalParticipant } from '@livekit/components-react';
 import { RemoteParticipant } from 'livekit-client';
 import { useState, useEffect } from 'react';
+import { API_BASE } from '../../lib/api';
 
 const getUsernameColor = (username: string) => {
   let hash = 0;
@@ -19,8 +20,17 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
   const room = useRoomContext();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [fullyExpandedId, setFullyExpandedId] = useState<string | null>(null);
+  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
 
   const isOwner = room.name === localParticipant.identity || room.name === localParticipant.name;
+
+  useEffect(() => {
+    const onResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const isMobile = screenWidth < 640;
+  const isTablet = screenWidth < 1024;
 
   const handleKick = async (participantIdentity: string) => {
     if (!confirm('Are you sure you want to kick this user?')) return;
@@ -70,7 +80,24 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
   };
 
   const allParticipants = [localParticipant, ...participants];
+  const sortedParticipants = allParticipants
+    .slice()
+    .sort((a, b) => {
+      const weight = (p: any) => {
+        if (payerName && p.name === payerName) return 0;
+        if (p.identity === room.name || p.name === room.name) return 1;
+        return 2;
+      };
+      const wa = weight(a);
+      const wb = weight(b);
+      if (wa !== wb) return wa - wb;
+      const na = (a.name || a.identity || '').toLowerCase();
+      const nb = (b.name || b.identity || '').toLowerCase();
+      return na.localeCompare(nb);
+    });
   const activeParticipant = allParticipants.find(p => p.identity === fullyExpandedId);
+  const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   const handleChallenge = async (participantName: string) => {
     if (!confirm(`Challenge ${participantName} to a Battle?`)) return;
@@ -101,14 +128,19 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: '0.5rem',
+        gap: '0.4rem',
         zIndex: 45,
         maxWidth: '80%',
         overflowX: 'auto',
-        padding: '10px',
-        scrollbarWidth: 'none', // Firefox
+        padding: '6px 10px',
+        borderRadius: '24px',
+        background: 'rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        maskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
+        scrollbarWidth: 'none',
       }}>
-        {allParticipants.map((p) => {
+        {sortedParticipants.map((p) => {
           const isPayer = p.name === payerName;
           const isExpanded = expandedId === p.identity;
           const isFull = fullyExpandedId === p.identity;
@@ -120,6 +152,10 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
                  avatarUrl = metadata.avatar;
              }
           } catch(e) {}
+          if (!avatarUrl) {
+            const seed = encodeURIComponent(p.name || 'Guest');
+            avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+          }
 
           return (
             <div 
@@ -136,40 +172,39 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
             >
               {/* Ring / Avatar */}
               <div style={{
-                width: isPayer ? '50px' : '40px',
-                height: isPayer ? '50px' : '40px',
+                width: isPayer ? (isMobile ? '42px' : '50px') : (isMobile ? '34px' : '40px'),
+                height: isPayer ? (isMobile ? '42px' : '50px') : (isMobile ? '34px' : '40px'),
                 borderRadius: '50%',
                 border: `2px solid ${isPayer ? 'var(--accent-primary)' : color}`,
                 background: 'rgba(0,0,0,0.5)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: isPayer ? '1.2rem' : '1rem',
+        fontSize: isPayer ? '1.1rem' : '0.95rem',
                 fontWeight: 700,
                 color: 'white',
-                boxShadow: isPayer ? '0 0 15px var(--accent-primary)' : '0 2px 5px rgba(0,0,0,0.3)',
+                boxShadow: isPayer ? '0 0 12px var(--accent-primary)' : '0 2px 5px rgba(0,0,0,0.3)',
                 zIndex: 2,
                 flexShrink: 0,
                 overflow: 'hidden',
                 backgroundSize: 'cover',
                 backgroundImage: avatarUrl ? `url(${avatarUrl})` : 'none'
               }}>
-                {!avatarUrl && (p.name?.substring(0, 2).toUpperCase() || 'GU')}
               </div>
 
               {/* Expanded Card (Name) */}
               {(isExpanded || isPayer) && (
                  <div style={{
-                   marginLeft: '-20px',
-                   paddingLeft: '25px',
-                   paddingRight: '15px',
-                   height: '36px',
+                   marginLeft: '-16px',
+                   paddingLeft: '22px',
+                   paddingRight: '12px',
+                   height: isMobile ? '30px' : '34px',
                    background: isPayer ? 'linear-gradient(90deg, var(--accent-primary), #9a3412)' : 'rgba(0,0,0,0.8)',
-                   borderRadius: '0 20px 20px 0',
+                   borderRadius: '0 18px 18px 0',
                    display: 'flex',
                    alignItems: 'center',
                    color: 'white',
-                   fontSize: '0.85rem',
+                   fontSize: isMobile ? '0.75rem' : '0.82rem',
                    fontWeight: 600,
                    whiteSpace: 'nowrap',
                    animation: 'slideOut 0.3s forwards',
@@ -187,8 +222,8 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
                           border: 'none',
                           color: 'white',
                           borderRadius: '50%',
-                          width: '20px',
-                          height: '20px',
+                          width: isMobile ? '18px' : '20px',
+                          height: isMobile ? '18px' : '20px',
                           fontSize: '0.7rem',
                           display: 'flex',
                           alignItems: 'center',
@@ -262,6 +297,15 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
                 >✕</button>
 
                 <div style={{ textAlign: 'center' }}>
+                  {(() => {
+                    const seed = encodeURIComponent(activeParticipant.name || 'Guest');
+                    const fallbackUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+                    let modalAvatar = fallbackUrl;
+                    try {
+                      const md = activeParticipant.metadata ? JSON.parse(activeParticipant.metadata) : {};
+                      if (md.avatar) modalAvatar = md.avatar;
+                    } catch {}
+                    return (
                   <div style={{
                     width: '80px',
                     height: '80px',
@@ -277,10 +321,11 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
                     margin: '0 auto 1rem auto',
                     overflow: 'hidden',
                     backgroundSize: 'cover',
-                    backgroundImage: activeParticipant.metadata && JSON.parse(activeParticipant.metadata).avatar ? `url(${JSON.parse(activeParticipant.metadata).avatar})` : 'none'
+                    backgroundImage: `url(${modalAvatar})`
                   }}>
-                    {!(activeParticipant.metadata && JSON.parse(activeParticipant.metadata).avatar) && (activeParticipant.name?.substring(0, 2).toUpperCase() || 'GU')}
                   </div>
+                    );
+                  })()}
                   <h3 style={{ margin: 0, color: 'white' }}>{activeParticipant.name}</h3>
                   <p style={{ color: 'var(--text-secondary)', margin: '0.2rem 0' }}>
                     {activeParticipant.permissions?.canPublish ? 'Broadcaster' : 'Viewer'}
@@ -288,13 +333,48 @@ export const SpectatorRow = ({ payerName }: { payerName?: string }) => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <button style={{ padding: '10px', background: 'var(--accent-primary)', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+                    <button 
+                      onClick={async () => {
+                        setLoadingProfile(true);
+                        setSelectedProfile(null);
+                        try {
+                          const res = await fetch(`${API_BASE}/api/public/profile/${encodeURIComponent(activeParticipant.name || '')}`);
+                          const data = await res.json();
+                          setSelectedProfile(data);
+                        } catch {}
+                        setLoadingProfile(false);
+                      }}
+                      style={{ padding: '10px', background: 'var(--accent-primary)', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                    >
                       View Profile
                     </button>
-                    <button style={{ padding: '10px', background: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+                    <button 
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('CHAT_PREFILL', { detail: { text: `@${activeParticipant.name} ` } }));
+                        setFullyExpandedId(null);
+                      }}
+                      style={{ padding: '10px', background: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                    >
                       Message
                     </button>
                 </div>
+
+                {loadingProfile && (
+                  <div style={{ marginTop: '1rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Loading profile...</div>
+                )}
+                {selectedProfile && (
+                  <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.75rem', color: 'white', display: 'grid', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', backgroundSize: 'cover', backgroundImage: `url(https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedProfile.username || '')})` }} />
+                      <div style={{ fontWeight: 700 }}>{selectedProfile.username}</div>
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{selectedProfile.bio || 'No bio provided.'}</div>
+                    <div style={{ display: 'flex', gap: '10px', fontSize: '0.85rem' }}>
+                      <span>❤️ {selectedProfile.likes || selectedProfile.totalLikes || 0}</span>
+                      <span>🪙 {selectedProfile.totalTips || 0}</span>
+                    </div>
+                  </div>
+                )}
 
                 {isOwner && activeParticipant.identity !== localParticipant.identity && (
                     <button 

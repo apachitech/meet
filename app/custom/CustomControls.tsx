@@ -7,36 +7,31 @@ import { useEffect, useState, useCallback } from 'react';
 export const CustomControls = () => {
   const { localParticipant } = useLocalParticipant();
   const room = useRoomContext();
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [isVideoMaximized, setIsVideoMaximized] = useState(false);
 
   // Activity monitor for auto-hide
   useEffect(() => {
-    const handleActivity = () => {
-      setIsVisible(true);
-      setLastActivity(Date.now());
-    };
-
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('click', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('touchstart', handleActivity);
-
     const interval = setInterval(() => {
-      if (Date.now() - lastActivity > 3000) { // Hide after 3s
+      if (isVisible && Date.now() - lastActivity > 3000) {
         setIsVisible(false);
       }
     }, 1000);
 
     return () => {
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('click', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('touchstart', handleActivity);
       clearInterval(interval);
     };
-  }, [lastActivity]);
+  }, [lastActivity, isVisible]);
+
+  useEffect(() => {
+    const onShow = () => {
+      setIsVisible(true);
+      setLastActivity(Date.now());
+    };
+    window.addEventListener('SHOW_CONTROLS', onShow);
+    return () => window.removeEventListener('SHOW_CONTROLS', onShow);
+  }, []);
 
   const toggleMic = useCallback(() => {
     const enabled = localParticipant.isMicrophoneEnabled;
@@ -99,30 +94,31 @@ export const CustomControls = () => {
   const padding = isMobile ? '0.6rem 0.8rem' : '0.75rem 1rem';
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: isMobile ? '60px' : 'auto',
-        bottom: isMobile ? 'auto' : '2rem',
-        left: isMobile ? '0.5rem' : '50%',
-        right: isMobile ? '0.5rem' : 'auto',
-        transform: isMobile ? `translateY(${isVisible ? '0' : '-150%'})` : `translateX(-50%) translateY(${isVisible ? '0' : '150%'})`,
-        display: 'flex',
-        gap: buttonGap,
-        padding: padding,
-        background: 'rgba(15, 15, 15, 0.9)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: isMobile ? '16px' : '60px',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        zIndex: 50,
-        transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
-        flexWrap: isMobile ? 'wrap' : 'nowrap',
-        justifyContent: 'center',
-        maxWidth: isMobile ? 'calc(100% - 1rem)' : '90vw',
-        alignItems: 'center',
-      }}
-    >
+    <>
+      <div
+        style={{
+          position: 'fixed',
+          top: 'auto',
+          bottom: isMobile ? '1rem' : '2rem',
+          left: isMobile ? '0.5rem' : '50%',
+          right: isMobile ? '0.5rem' : 'auto',
+          transform: isMobile ? `translateY(${isVisible ? '0' : '150%'})` : `translateX(-50%) translateY(${isVisible ? '0' : '150%'})`,
+          display: 'flex',
+          gap: buttonGap,
+          padding: padding,
+          background: 'rgba(15, 15, 15, 0.9)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: isMobile ? '16px' : '60px',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          zIndex: 50,
+          transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          justifyContent: 'center',
+          maxWidth: isMobile ? 'calc(100% - 1rem)' : '90vw',
+          alignItems: 'center',
+        }}
+      >
       {/* Primary Controls */}
       <div style={{ display: 'flex', gap: `${buttonGap}rem`, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
         <ControlButton 
@@ -236,7 +232,8 @@ export const CustomControls = () => {
           isMobile={isMobile}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

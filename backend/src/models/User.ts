@@ -34,6 +34,8 @@ const userSchema = new mongoose.Schema({
   tokenBalance: { type: Number, default: 0 },
   totalTips: { type: Number, default: 0 },
   totalLikes: { type: Number, default: 0 },
+  followersCount: { type: Number, default: 0 },
+  viewsCount: { type: Number, default: 0 },
   likes: { type: Number, default: 0 },
   avatar: { type: String, default: '' },
   bio: { type: String, default: '' },

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Footer } from '../components/Footer';
 import { useEffect, useState } from 'react';
+import { api, apiJson } from '../../lib/api';
 import styles from '../../styles/Profile.module.css';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -30,9 +31,7 @@ export default function ProfilePage() {
             return;
         }
 
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        api.get('/api/profile', true)
             .then((res) => {
                 if (!res.ok) {
                     if (res.status === 401 || res.status === 403 || res.status === 404) {
@@ -66,14 +65,7 @@ export default function ProfilePage() {
         setSaving(true);
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}` 
-                },
-                body: JSON.stringify(editForm)
-            });
+            const res = await api.put('/api/profile', editForm, true);
             if (res.ok) {
                 const data = await res.json();
                 setUser(data.user);
@@ -98,14 +90,7 @@ export default function ProfilePage() {
 
         const token = localStorage.getItem('token');
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/profile`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}` 
-                },
-                body: JSON.stringify({ settings: newSettings })
-            });
+            await api.put('/api/profile', { settings: newSettings }, true);
         } catch (err) {
             toast.error('Failed to save setting');
              // Revert on error would be ideal
