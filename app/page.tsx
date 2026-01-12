@@ -41,7 +41,11 @@ export default function Page() {
 
     // Fetch Models
     apiJson('/api/models')
-      .then((data) => setModels(data))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setModels(data as { id: string; username: string }[]);
+        }
+      })
       .catch(console.error);
   }, [router]);
 
