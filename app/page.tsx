@@ -11,7 +11,7 @@ export default function Page() {
   const router = useRouter();
   const settings = useSiteConfig();
   const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<{ username: string; role: 'user' | 'model'; tokenBalance: number } | null>(null);
+  const [user, setUser] = useState<{ username: string; role: 'user' | 'model' | 'admin'; tokenBalance: number } | null>(null);
   const [models, setModels] = useState<{ id: string; username: string }[]>([]);
 
   useEffect(() => {
@@ -79,6 +79,15 @@ export default function Page() {
               <span className={styles.username} onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }}>
                 {user?.username}
               </span>
+              {user?.role === 'admin' && (
+                <button 
+                  className={styles.logoutBtn} 
+                  onClick={() => router.push('/admin')}
+                  style={{ background: '#ef4444', color: 'white', border: 'none' }}
+                >
+                  Admin
+                </button>
+              )}
               <button className={styles.logoutBtn} onClick={handleLogout}>Logout</button>
             </>
           ) : (

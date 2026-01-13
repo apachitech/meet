@@ -416,6 +416,13 @@ function VideoConferenceComponent(props: {
 
   const lowPowerMode = useLowCPUOptimizer(room);
 
+  const [isReconnecting, setIsReconnecting] = React.useState(false);
+  const [isDisconnected, setIsDisconnected] = React.useState(false);
+
+  const handleReconnecting = React.useCallback(() => setIsReconnecting(true), []);
+  const handleReconnected = React.useCallback(() => setIsReconnecting(false), []);
+  const handleDisconnected = React.useCallback(() => setIsDisconnected(true), []);
+  
   const router = useRouter();
   const handleOnLeave = React.useCallback(() => router.push('/'), [router]);
   const handleError = React.useCallback((error: Error) => {
@@ -433,7 +440,9 @@ function VideoConferenceComponent(props: {
   }, []);
 
   React.useEffect(() => {
-    room.on(RoomEvent.Disconnected, handleOnLeave);
+    room.on(RoomEvent.Reconnecting, handleReconnecting);
+    room.on(RoomEvent.Reconnected, handleReconnected);
+    room.on(RoomEvent.Disconnected, handleDisconnected);
     room.on(RoomEvent.EncryptionError, handleEncryptionError);
     room.on(RoomEvent.MediaDevicesError, handleError);
 
@@ -460,15 +469,82 @@ function VideoConferenceComponent(props: {
       }
     }
     return () => {
-      room.off(RoomEvent.Disconnected, handleOnLeave);
+      room.off(RoomEvent.Reconnecting, handleReconnecting);
+      room.off(RoomEvent.Reconnected, handleReconnected);
+      room.off(RoomEvent.Disconnected, handleDisconnected);
       room.off(RoomEvent.EncryptionError, handleEncryptionError);
       room.off(RoomEvent.MediaDevicesError, handleError);
     };
-  }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices, connectOptions, handleEncryptionError, handleError, handleOnLeave]);
+  }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices, connectOptions, handleEncryptionError, handleError, handleDisconnected, handleReconnecting, handleReconnected]);
 
   return (
     <div className="lk-room-container">
       <RoomContext.Provider value={room}>
+        {isReconnecting && (
+            <div style={{
+                position: 'absolute',
+                top: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: '#eab308',
+                color: 'black',
+                padding: '0.5rem 1rem',
+                borderRadius: '20px',
+                zIndex: 1000,
+                fontWeight: 'bold',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+            }}>
+                Network unstable. Reconnecting...
+            </div>
+        )}
+        {isDisconnected && (
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(0,0,0,0.85)',
+                backdropFilter: 'blur(10px)',
+                zIndex: 2000,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                gap: '1.5rem'
+            }}>
+                <h2 style={{ fontSize: '2rem', margin: 0 }}>Disconnected</h2>
+                <p style={{ color: '#aaa' }}>The connection to the broadcast was lost.</p>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        style={{
+                            background: 'var(--accent-primary)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '8px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Reconnect
+                    </button>
+                    <button 
+                        onClick={() => router.push('/')}
+                        style={{
+                            background: 'transparent',
+                            color: 'white',
+                            border: '1px solid #555',
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '8px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Leave Room
+                    </button>
+                </div>
+            </div>
+        )}
         {showBlur && (
           <div style={{
             position: 'absolute',
