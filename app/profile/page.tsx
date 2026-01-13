@@ -105,6 +105,14 @@ export default function ProfilePage() {
         }
     };
 
+    const handleTopUp = () => {
+        toast('Top Up feature coming soon!', { icon: '💳' });
+    };
+
+    const handleWithdraw = () => {
+        toast('Withdrawal feature coming soon!', { icon: '💰' });
+    };
+
     const goBack = () => {
         router.push('/');
     };
@@ -183,12 +191,12 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
                                 {user?.role === 'user' && (
-                                    <button className={styles.actionBtn}>
+                                    <button className={styles.actionBtn} onClick={handleTopUp}>
                                         Top Up Tokens
                                     </button>
                                 )}
                                 {user?.role === 'model' && (
-                                    <button className={styles.actionBtn} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                                    <button className={styles.actionBtn} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }} onClick={handleWithdraw}>
                                         Withdraw Earnings
                                     </button>
                                 )}
@@ -283,22 +291,30 @@ export default function ProfilePage() {
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             <div className={styles.profileContainer} style={{ flex: 1 }}>
                 <Toaster position="top-right" />
-                <div className={styles.profileContent}>
-                    <div style={{ 
-                        position: 'sticky', 
-                        top: 0, 
-                        zIndex: 40, 
-                        background: 'rgba(18, 18, 18, 0.95)', 
-                        backdropFilter: 'blur(10px)',
-                        padding: '2rem 0 0 0', 
-                        margin: '0 0 2rem 0', 
-                        borderBottom: '1px solid var(--border-color)' 
-                    }}>
+                
+                {/* Full Width Sticky Header */}
+                <div className={styles.stickyHeader}>
+                    <div className={styles.stickyHeaderContent}>
                         <header className={styles.header}>
                             <h1>User Management</h1>
-                            <button className={styles.backBtn} onClick={goBack}>
-                                ← Back to Home
-                            </button>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                {user?.role === 'admin' && (
+                                    <button 
+                                        className={styles.backBtn} 
+                                        onClick={() => router.push('/admin')}
+                                        style={{ 
+                                            background: '#ef4444', 
+                                            color: 'white', 
+                                            borderColor: '#ef4444' 
+                                        }}
+                                    >
+                                        Admin Panel
+                                    </button>
+                                )}
+                                <button className={styles.backBtn} onClick={goBack}>
+                                    ← Back to Home
+                                </button>
+                            </div>
                         </header>
 
                         <div className={styles.tabs} style={{ marginBottom: 0, borderBottom: 'none', paddingBottom: '1rem' }}>
@@ -326,9 +342,20 @@ export default function ProfilePage() {
                             >
                                 Settings
                             </button>
+                            {user?.role === 'admin' && (
+                                <button 
+                                    className={`${styles.tab}`} 
+                                    onClick={() => router.push('/admin')}
+                                    style={{ color: '#ef4444', borderColor: '#ef4444' }}
+                                >
+                                    Admin Panel
+                                </button>
+                            )}
                         </div>
                     </div>
+                </div>
 
+                <div className={styles.profileContent}>
                     {renderContent()}
 
                     <div className={styles.logoutSection}>

@@ -1,10 +1,24 @@
 .profileContainer {
   min-height: 100vh;
-  padding: 0 2rem 6rem;
   background: radial-gradient(circle at top right, #1a1a1a, var(--bg-dark));
   display: flex;
   flex-direction: column;
-  align-items: center;
+}
+
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-color);
+  width: 100%;
+}
+
+.stickyHeaderContent {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 2rem 0;
 }
 
 .profileContent {
@@ -13,7 +27,8 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  padding-bottom: 8rem;
+  padding: 2rem 2rem 8rem;
+  margin: 0 auto;
 }
 
 .header {
@@ -209,7 +224,30 @@
 
 @media (max-width: 600px) {
   .profileContainer {
-    padding: 80px 1rem 4rem;
+    padding: 0;
+  }
+
+  .stickyHeaderContent {
+    padding: 1rem 1rem 0;
+  }
+
+  .profileContent {
+    padding: 1rem 1rem 6rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+  }
+
+  .header > div {
+    width: 100%;
+    justify-content: space-between;
   }
   
   .balanceSection {

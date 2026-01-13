@@ -1,11 +1,11 @@
-import { User } from './models/User.js';
+import { User, IUser } from './models/User.js';
 import { Follow } from './models/Follow.js';
 
 export const getUserByUsername = async (req: any, res: any) => {
   const { username } = req.params;
 
   try {
-    const user = await User.findOne({ username });
+    const user: IUser | null = await User.findOne({ username });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -31,7 +31,7 @@ export const getUserByUsername = async (req: any, res: any) => {
 export const incrementViewCount = async (req: any, res: any) => {
   const { username } = req.params;
   try {
-    const user = await User.findOne({ username });
+    const user: IUser | null = await User.findOne({ username });
     if (!user) return res.status(404).json({ message: 'User not found' });
     user.viewsCount = (user.viewsCount || 0) + 1;
     await user.save();
@@ -45,7 +45,7 @@ export const incrementViewCount = async (req: any, res: any) => {
 export const followUser = async (req: any, res: any) => {
   const { username } = req.params;
   try {
-    const target = await User.findOne({ username });
+    const target: IUser | null = await User.findOne({ username });
     if (!target) return res.status(404).json({ message: 'User not found' });
     const followerId = req.user.userId;
     const exists = await Follow.findOne({ target: target._id, follower: followerId });
@@ -63,7 +63,7 @@ export const followUser = async (req: any, res: any) => {
 export const unfollowUser = async (req: any, res: any) => {
   const { username } = req.params;
   try {
-    const target = await User.findOne({ username });
+    const target: IUser | null = await User.findOne({ username });
     if (!target) return res.status(404).json({ message: 'User not found' });
     const followerId = req.user.userId;
     const doc = await Follow.findOne({ target: target._id, follower: followerId });
@@ -81,7 +81,7 @@ export const unfollowUser = async (req: any, res: any) => {
 export const isFollowing = async (req: any, res: any) => {
   const { username } = req.params;
   try {
-    const target = await User.findOne({ username });
+    const target: IUser | null = await User.findOne({ username });
     if (!target) return res.status(404).json({ message: 'User not found' });
     const followerId = req.user?.userId;
     if (!followerId) return res.json({ isFollowing: false });

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, apiJson, apiFetch } from '../../lib/api';
+import { toast } from 'react-hot-toast';
 
 const GIFT_ICONS = [
     '🌹', '💎', '🔥', '💖', '🍾', '🏎️', '🏰', '🚀', 
@@ -35,17 +36,29 @@ export default function AdminPage() {
         }
 
         try {
+            console.log('Verifying admin access...');
             const res = await api.get('/api/profile', true);
+            
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Auth check failed: ${res.status} ${res.statusText} - ${errorText}`);
+            }
+
             const data = await res.json();
+            console.log('Profile data received:', data);
+
             if (data.role !== 'admin') {
-                alert('Access Denied: Admins only');
+                console.warn('User is not admin:', data.role);
+                alert(`Access Denied: You are logged in as '${data.role}', but 'admin' access is required.`);
                 router.push('/');
             } else {
+                console.log('Admin access granted');
                 setIsAdmin(true);
                 fetchData(token);
             }
-        } catch(e) {
-            console.error(e);
+        } catch(e: any) {
+            console.error('Admin check error:', e);
+            alert(`Error loading admin panel: ${e.message}. Check console for details.`);
             router.push('/');
         } finally {
             setLoading(false);
@@ -68,42 +81,63 @@ export default function AdminPage() {
 
   const saveSettings = async () => {
     const token = localStorage.getItem('token');
-    await api.put('/api/admin/settings', settings, true);
-    alert('Settings Saved');
-    window.location.reload();
+    try {
+        await api.put('/api/admin/settings', settings, true);
+        toast.success('Settings Saved');
+    } catch (e) {
+        console.error(e);
+        toast.error('Failed to save settings');
+    }
   };
 
   const updateUserRole = async (id: string, role: string) => {
-    const token = localStorage.getItem('token');
-    await api.put(`/api/admin/users/${id}/role`, { role }, true);
-    // Refresh
-    const newUsers = users.map(u => u._id === id ? { ...u, role } : u);
-    setUsers(newUsers);
+    try {
+        await api.put(`/api/admin/users/${id}/role`, { role }, true);
+        // Refresh
+        const newUsers = users.map(u => u._id === id ? { ...u, role } : u);
+        setUsers(newUsers);
+        toast.success('User role updated successfully');
+    } catch (error) {
+        console.error('Failed to update role:', error);
+        toast.error('Failed to update user role');
+    }
   };
 
   const addGift = async (e: React.FormEvent) => {
       e.preventDefault();
-      const form = e.target as HTMLFormElement;
-      const data = {
-          name: (form.elements.namedItem('name') as HTMLInputElement).value,
-          price: parseInt((form.elements.namedItem('price') as HTMLInputElement).value),
-          icon: newGiftIcon || (form.elements.namedItem('icon') as HTMLInputElement).value,
-          type: (form.elements.namedItem('type') as HTMLSelectElement).value,
-      };
+      try {
+          const form = e.target as HTMLFormElement;
+          const data = {
+              name: (form.elements.namedItem('name') as HTMLInputElement).value,
+              price: parseInt((form.elements.namedItem('price') as HTMLInputElement).value),
+              icon: newGiftIcon || (form.elements.namedItem('icon') as HTMLInputElement).value,
+              type: (form.elements.namedItem('type') as HTMLSelectElement).value,
+          };
 
-      const token = localStorage.getItem('token');
-      const res = await api.post('/api/admin/gifts', data, true);
-      const newGift = await res.json();
-      setGifts([...gifts, newGift]);
-      setNewGiftIcon('');
-      form.reset();
+          const res = await api.post('/api/admin/gifts', data, true);
+          if (!res.ok) throw new Error('Failed to create gift');
+          
+          const newGift = await res.json();
+          setGifts([...gifts, newGift]);
+          setNewGiftIcon('');
+          form.reset();
+          toast.success('Gift added successfully');
+      } catch (error) {
+          console.error('Failed to add gift:', error);
+          toast.error('Failed to add gift');
+      }
   };
 
   const deleteGift = async (id: string) => {
       if(!confirm('Delete this gift?')) return;
-      const token = localStorage.getItem('token');
-      await apiFetch(`/api/admin/gifts/${id}`, { method: 'DELETE', requireAuth: true });
-      setGifts(gifts.filter(g => g.id !== id));
+      try {
+          await apiFetch(`/api/admin/gifts/${id}`, { method: 'DELETE', requireAuth: true });
+          setGifts(gifts.filter(g => g.id !== id));
+          toast.success('Gift deleted successfully');
+      } catch (error) {
+          console.error('Failed to delete gift:', error);
+          toast.error('Failed to delete gift');
+      }
   };
 
   // Economy Helpers

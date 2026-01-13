@@ -8,6 +8,8 @@ export interface IUser extends Document {
   tokenBalance: number;
   totalTips: number;
   totalLikes: number;
+  followersCount: number;
+  viewsCount: number;
   likes: number;
   avatar: string;
   bio: string;
