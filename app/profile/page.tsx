@@ -255,7 +255,7 @@ export default function ProfilePage() {
                             </div>
                             <input 
                                 type="checkbox" 
-                                checked={!!user?.settings?.emailNotifications} 
+                                checked={user?.settings?.emailNotifications ?? false} 
                                 onChange={() => toggleSetting('emailNotifications')}
                                 style={{ transform: 'scale(1.5)', accentColor: 'var(--accent-primary)' }} 
                             />
@@ -267,7 +267,7 @@ export default function ProfilePage() {
                             </div>
                             <input 
                                 type="checkbox" 
-                                checked={!!user?.settings?.twoFactor} 
+                                checked={user?.settings?.twoFactor ?? false} 
                                 onChange={() => toggleSetting('twoFactor')}
                                 style={{ transform: 'scale(1.5)', accentColor: 'var(--accent-primary)' }} 
                             />
