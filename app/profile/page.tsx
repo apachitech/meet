@@ -6,9 +6,14 @@ import { useEffect, useState } from 'react';
 import { api, apiJson } from '../../lib/api';
 import styles from '../../styles/Profile.module.css';
 import { Toaster, toast } from 'react-hot-toast';
+import { useUser } from '../components/UserProvider';
+import { Skeleton } from '../components/Skeleton';
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { user: globalUser, refreshUser, loading: globalLoading, logout } = useUser();
+    
+    // We keep local state for full profile details that might not be in the lightweight global user object
     const [user, setUser] = useState<{
         username: string;
         email: string;
@@ -25,8 +30,9 @@ export default function ProfilePage() {
     const [editForm, setEditForm] = useState({ email: '', bio: '' });
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) {
+        if (globalLoading) return;
+        
+        if (!globalUser) {
             router.push('/login');
             return;
         }
@@ -34,12 +40,7 @@ export default function ProfilePage() {
         api.get('/api/profile', true)
             .then((res) => {
                 if (!res.ok) {
-                    if (res.status === 401 || res.status === 403 || res.status === 404) {
-                        localStorage.removeItem('token');
-                        router.push('/login');
-                        throw new Error('Unauthorized');
-                    }
-                    throw new Error('Failed to fetch profile');
+                   throw new Error('Failed to fetch profile');
                 }
                 return res.json();
             })
@@ -53,22 +54,20 @@ export default function ProfilePage() {
                 setLoading(false);
             })
             .catch((err) => {
-                if (err.message !== 'Unauthorized') {
-                    console.error(err);
-                    toast.error('Failed to load profile');
-                }
+                console.error(err);
+                toast.error('Failed to load profile');
                 setLoading(false);
             });
-    }, [router]);
+    }, [router, globalUser, globalLoading]);
 
     const handleUpdateProfile = async () => {
         setSaving(true);
-        const token = localStorage.getItem('token');
         try {
             const res = await api.put('/api/profile', editForm, true);
             if (res.ok) {
                 const data = await res.json();
                 setUser(data.user);
+                refreshUser(); // Update global state
                 toast.success('Profile updated successfully!');
             } else {
                 toast.error('Failed to update profile');
@@ -88,7 +87,6 @@ export default function ProfilePage() {
         // Optimistic update
         setUser({ ...user, settings: newSettings });
 
-        const token = localStorage.getItem('token');
         try {
             await api.put('/api/profile', { settings: newSettings }, true);
         } catch (err) {
@@ -117,11 +115,26 @@ export default function ProfilePage() {
         router.push('/');
     };
 
-    if (loading) {
+    if (loading || !user) {
         return (
-            <div className={styles.profileContainer}>
-                <div className={styles.profileContent}>
-                    <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Loading security profile...</p>
+            <div className={styles.container}>
+                <div className={styles.sidebar}>
+                   <div className={styles.profileHeader}>
+                        <Skeleton width="100px" height="100px" borderRadius="50%" style={{ marginBottom: '1rem' }} />
+                        <Skeleton width="150px" height="24px" style={{ marginBottom: '0.5rem' }} />
+                        <Skeleton width="100px" height="16px" />
+                   </div>
+                   <div className={styles.nav}>
+                        <Skeleton width="100%" height="40px" style={{ marginBottom: '0.5rem' }} />
+                        <Skeleton width="100%" height="40px" style={{ marginBottom: '0.5rem' }} />
+                        <Skeleton width="100%" height="40px" />
+                   </div>
+                </div>
+                <div className={styles.content}>
+                   <Skeleton width="200px" height="32px" style={{ marginBottom: '2rem' }} />
+                   <div className={styles.card}>
+                       <Skeleton width="100%" height="200px" />
+                   </div>
                 </div>
             </div>
         );
@@ -288,8 +301,7 @@ export default function ProfilePage() {
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <div className={styles.profileContainer} style={{ flex: 1 }}>
+        <div className={styles.container}>
                 <Toaster position="top-right" />
                 
                 {/* Full Width Sticky Header */}

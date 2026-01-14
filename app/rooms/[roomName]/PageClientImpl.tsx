@@ -42,6 +42,8 @@ import { api, API_BASE } from '../../../lib/api';
 import { usePrivateStatus } from '../../../lib/usePrivateStatus';
 import { LiveStatsBar } from '@/app/custom/LiveStatsBar';
 import { RelatedBroadcasts } from '@/app/custom/RelatedBroadcasts';
+import { useUser } from '../../components/UserProvider';
+import { AdDisplay } from '../../components/AdDisplay';
 
 const CONN_DETAILS_ENDPOINT =
   process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
@@ -623,6 +625,12 @@ function VideoConferenceComponent(props: {
                   <StreamingStage roomName={props.roomName} privateState={privateState} />
                   
                   {/* Overlays that sit on top of video */}
+                  <div style={{ position: 'absolute', bottom: '100px', right: '20px', width: '300px', height: '169px', zIndex: 30, pointerEvents: 'none' }}>
+                     <div style={{ pointerEvents: 'auto' }}>
+                        <AdDisplay location="video-overlay" style={{ width: '100%', height: '100%' }} />
+                     </div>
+                  </div>
+
                   {isMobile && <OverlayChat mode="overlay" />}
                   <LiveStatsBar roomName={props.roomName} />
                   <SpectatorRow payerName={privateState.payer} />
@@ -659,30 +667,23 @@ function VideoConferenceComponent(props: {
 
 function GiftOverlay({ roomName, username }: { roomName: string; username: string }) {
   const remoteParticipants = useRemoteParticipants();
-  const [tokenBalance, setTokenBalance] = useState(0);
+  const { user, refreshUser } = useUser();
+  // Fallback to 0 if user not loaded yet, but rely on user.tokenBalance
+  const tokenBalance = user?.tokenBalance || 0;
+
   const [giftNotification, setGiftNotification] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [showStore, setShowStore] = useState(false);
   const { room } = React.useContext(RoomContext) as unknown as unknown as { room: Room } || {};
   const [privateState, setPrivateState] = useState<{ isPrivate: boolean; payer?: string }>({ isPrivate: false });
 
-  const fetchBalance = () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        api.get('/api/profile', true)
-        .then(res => res.json())
-        .then(data => {
-            if (data && typeof data.tokenBalance === 'number') setTokenBalance(data.tokenBalance);
-        })
-        .catch(console.error);
-    }
-  };
-
   const { state: hookStatus, refresh: refreshPrivate } = usePrivateStatus(roomName);
   useEffect(() => {
-    fetchBalance();
+    // We don't need to fetch balance manually anymore, useUser handles it
+    // But we might want to refresh when component mounts
+    refreshUser();
     setPrivateState(hookStatus);
-  }, [roomName, hookStatus]);
+  }, [roomName, hookStatus, refreshUser]);
 
   const handleSendGift = async (giftId: string, price: number, name: string, recipient: RemoteParticipant) => {
     const token = localStorage.getItem('token');
@@ -692,7 +693,9 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
       const res = await api.post('/api/gift', { recipientId: recipient.identity, giftId, roomName }, true);
       const data = await res.json();
       if (res.ok) {
-        setTokenBalance(data.senderBalance);
+        // Update global user state with new balance
+        refreshUser();
+        
         const giftMessage = {
           sender: username,
           recipient: recipient.name,
@@ -731,24 +734,18 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
 
     if (!confirm('Start Private Show? This costs 50 tokens/min.')) return;
 
-    // Optimistic Update
-    const oldBalance = tokenBalance;
-    setTokenBalance(prev => Math.max(0, prev - 50));
-
     try {
       const res = await api.post('/api/private/start', { modelUsername: roomName }, true);
       const data = await res.json();
       if (res.ok) {
-        setTokenBalance(data.balance);
+        refreshUser();
         alert('Private show started!');
         refreshPrivate();
       } else {
-        setTokenBalance(oldBalance); // Revert on failure
         alert(data.message);
       }
     } catch (error) {
       console.error(error);
-      setTokenBalance(oldBalance); // Revert on failure
       alert('Failed to start private show');
     }
   };
@@ -785,7 +782,7 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
 
   return (
     <>
-      {showStore && <TokenStore onClose={() => setShowStore(false)} onPurchaseComplete={fetchBalance} />}
+      {showStore && <TokenStore onClose={() => setShowStore(false)} onPurchaseComplete={refreshUser} />}
       <button 
          onClick={() => setIsOpen(!isOpen)}
          style={{

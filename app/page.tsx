@@ -1,54 +1,42 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api, apiJson } from '../lib/api';
 import styles from '../styles/Home.module.css';
 import { useSiteConfig } from './components/SiteConfigProvider';
+import { useUser } from './components/UserProvider';
 import { Footer } from './components/Footer';
+import { Skeleton } from './components/Skeleton';
+import { AdDisplay } from './components/AdDisplay';
 
 export default function Page() {
   const router = useRouter();
   const settings = useSiteConfig();
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<{ username: string; role: 'user' | 'model' | 'admin'; tokenBalance: number } | null>(null);
+  const { user, loading: userLoading, logout } = useUser();
   const [models, setModels] = useState<{ id: string; username: string }[]>([]);
+  const [loadingModels, setLoadingModels] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    
-    if (storedToken) {
-      setToken(storedToken);
-      // Fetch Profile
-      api.get('/api/profile', true)
-        .then((res) => {
-          if (!res.ok) {
-            if (res.status === 401 || res.status === 403 || res.status === 404) {
-              localStorage.removeItem('token');
-              setToken(null);
-            }
-            return null;
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data && data.username) setUser(data);
-        })
-        .catch((err) => {
-           console.error(err);
-        });
+  const fetchModels = useCallback(async () => {
+    try {
+      const data = await apiJson('/api/models');
+      if (Array.isArray(data)) {
+        setModels(data as { id: string; username: string }[]);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingModels(false);
     }
+  }, []);
 
-    // Fetch Models
-    apiJson('/api/models')
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setModels(data as { id: string; username: string }[]);
-        }
-      })
-      .catch(console.error);
-  }, [router]);
+  useEffect(() => {
+    fetchModels();
+    // Poll for active models every 15 seconds
+    const interval = setInterval(fetchModels, 15000);
+    return () => clearInterval(interval);
+  }, [fetchModels]);
 
   const goLive = () => {
     if (user) {
@@ -56,13 +44,6 @@ export default function Page() {
     } else {
         router.push('/login');
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    router.push('/login');
   };
 
   return (
@@ -80,15 +61,20 @@ export default function Page() {
           </div>
         </div>
         <div className={styles.navActions}>
-          {token && user ? (
+          {userLoading ? (
+            <div style={{ display: 'flex', gap: '1rem' }}>
+               <Skeleton width="80px" height="36px" borderRadius="20px" />
+               <Skeleton width="80px" height="36px" borderRadius="20px" />
+            </div>
+          ) : user ? (
             <>
               <span className={styles.username}>
-                {user?.tokenBalance ?? 0} tkns
+                {user.tokenBalance} tkns
               </span>
               <span className={styles.username} onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }}>
-                {user?.username}
+                {user.username}
               </span>
-              {user?.role === 'admin' && (
+              {user.role === 'admin' && (
                 <button 
                   className={styles.logoutBtn} 
                   onClick={() => router.push('/admin')}
@@ -97,7 +83,7 @@ export default function Page() {
                   Admin
                 </button>
               )}
-              <button className={styles.logoutBtn} onClick={handleLogout}>Logout</button>
+              <button className={styles.logoutBtn} onClick={logout}>Logout</button>
             </>
           ) : (
             <>
@@ -113,6 +99,10 @@ export default function Page() {
           )}
         </div>
       </nav>
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+        <AdDisplay location="home-top" style={{ width: '100%', height: '150px', marginBottom: '2rem' }} />
+      </div>
 
       <div className={styles.container}>
         {/* Mobile Menu Overlay */}
@@ -162,58 +152,55 @@ export default function Page() {
               </ul>
             </>
           )}
+          
+          <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+             <AdDisplay location="sidebar" style={{ width: '100%', height: '250px' }} />
+          </div>
         </aside>
 
         <main className={styles.content}>
           <div className={styles.hero}>
-            <div>
-              <h1>{settings?.homeTitle || 'Live Cams'}</h1>
-              <p>{settings?.homeSubtitle || 'Explore thousands of live cam models.'}</p>
-            </div>
-            {user?.role === 'model' && (
-              <button className="lk-button" onClick={goLive} style={{ padding: '0.8rem 1.5rem', fontSize: '1rem' }}>
-                BROADCAST LIVE
+            <h1 className={styles.title}>
+              Welcome to <span className={styles.highlight}>{settings?.siteName || 'Apacciflix'}</span>
+            </h1>
+            <p className={styles.description}>
+              Interactive Live Streaming Platform. Connect, Share, and Earn.
+            </p>
+            <div className={styles.cta}>
+              <button className={styles.primaryBtn} onClick={goLive}>
+                Start Broadcasting
               </button>
-            )}
-            {!token && (
-                <button className="lk-button" onClick={() => router.push('/login')} style={{ padding: '0.8rem 1.5rem', fontSize: '1rem' }}>
-                    BROADCAST LIVE
-                </button>
-            )}
+              <button className={styles.secondaryBtn} onClick={() => router.push('/search')}>
+                Find Creators
+              </button>
+            </div>
           </div>
 
-          <div className={styles.modelGrid}>
-            {models.map((model) => (
-              <div
-                key={model.id}
-                className={styles.modelCard}
-                onClick={() => router.push(`/rooms/${model.username}`)}
-              >
-                <div className={styles.cardPreview}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${model.username}`} 
-                    alt={model.username} 
-                  />
-                  <div className={styles.liveBadge}>LIVE</div>
-                  <div className={styles.cardOverlay}>
-                    <h4>{model.username}</h4>
-                    <div className={styles.viewers}>1.2k viewers</div>
-                  </div>
+          <div className={styles.grid}>
+            {loadingModels ? (
+              // Skeleton Loading for Grid
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className={styles.card} style={{ pointerEvents: 'none' }}>
+                  <Skeleton width="100%" height="180px" borderRadius="12px" style={{ marginBottom: '1rem' }} />
+                  <Skeleton width="60%" height="24px" borderRadius="4px" style={{ marginBottom: '0.5rem' }} />
+                  <Skeleton width="40%" height="16px" borderRadius="4px" />
                 </div>
-              </div>
-            ))}
-            
-            {/* Mock Data to fill the grid if few models exist */}
-            {models.length < 4 && Array.from({ length: 8 }).map((_, i) => (
-               <div key={`mock-${i}`} className={styles.modelCard} style={{ opacity: 0.5, pointerEvents: 'none' }}>
-                 <div className={styles.cardPreview}>
-                    <div style={{ width: '100%', height: '100%', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333' }}>
-                      Offline
-                    </div>
-                 </div>
-               </div>
-            ))}
+              ))
+            ) : models.length > 0 ? (
+              models.map((model) => (
+                <div key={model.id} className={styles.card} onClick={() => router.push(`/rooms/${model.username}`)}>
+                  <div className={styles.thumbnailPlaceholder}>
+                    <div className={styles.liveBadge}>LIVE</div>
+                  </div>
+                  <h3>{model.username}</h3>
+                  <p>Live now!</p>
+                </div>
+              ))
+            ) : (
+              <p style={{ textAlign: 'center', width: '100%', color: '#888' }}>
+                No models are live right now. Be the first!
+              </p>
+            )}
           </div>
         </main>
       </div>

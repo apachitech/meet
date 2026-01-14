@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, apiJson, apiFetch } from '../../lib/api';
 import { toast } from 'react-hot-toast';
+import { useUser } from '../components/UserProvider';
+import { Skeleton } from '../components/Skeleton';
 
 const GIFT_ICONS = [
     '🌹', '💎', '🔥', '💖', '🍾', '🏎️', '🏰', '🚀', 
@@ -13,70 +15,70 @@ const GIFT_ICONS = [
 
 export default function AdminPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy'>('settings');
+  const { user, loading: userLoading } = useUser();
+  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy' | 'promotions' | 'ads'>('settings');
   const [isAdmin, setIsAdmin] = useState(false);
   
   // Data
   const [settings, setSettings] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
   const [gifts, setGifts] = useState<any[]>([]);
+  const [promotions, setPromotions] = useState<any[]>([]);
+  const [ads, setAds] = useState<any[]>([]);
   
   // Loading
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   // New Gift State
   const [newGiftIcon, setNewGiftIcon] = useState('');
+  const [giftModalUser, setGiftModalUser] = useState<{id: string, username: string} | null>(null);
 
   useEffect(() => {
-    const checkAdmin = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
+    if (userLoading) return;
+
+    if (!user || user.role !== 'admin') {
+        if (!user) {
             router.push('/');
-            return;
-        }
-
-        try {
-            console.log('Verifying admin access...');
-            const res = await api.get('/api/profile', true);
-            
-            if (!res.ok) {
-                const errorText = await res.text();
-                throw new Error(`Auth check failed: ${res.status} ${res.statusText} - ${errorText}`);
-            }
-
-            const data = await res.json();
-            console.log('Profile data received:', data);
-
-            if (data.role !== 'admin') {
-                console.warn('User is not admin:', data.role);
-                alert(`Access Denied: You are logged in as '${data.role}', but 'admin' access is required.`);
-                router.push('/');
-            } else {
-                console.log('Admin access granted');
-                setIsAdmin(true);
-                fetchData(token);
-            }
-        } catch(e: any) {
-            console.error('Admin check error:', e);
-            alert(`Error loading admin panel: ${e.message}. Check console for details.`);
+        } else {
+            toast.error('Access Denied: Admin privileges required.');
             router.push('/');
-        } finally {
-            setLoading(false);
         }
-    };
-    checkAdmin();
+        return;
+    }
+
+    setIsAdmin(true);
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, [user, userLoading, router]);
 
-  const fetchData = async (token: string) => {
-    // Fetch Settings
-    api.get('/api/admin/settings', true).then(res => res.json()).then(setSettings);
+  const fetchData = async () => {
+    try {
+        // Fetch Settings
+        const settingsRes = await api.get('/api/admin/settings', true);
+        if (settingsRes.ok) setSettings(await settingsRes.json());
 
-    // Fetch Users
-    api.get('/api/admin/users', true).then(res => res.json()).then(setUsers);
+        // Fetch Users
+        const usersRes = await api.get('/api/admin/users', true);
+        if (usersRes.ok) setUsers(await usersRes.json());
 
-    // Fetch Gifts
-    api.get('/api/admin/gifts', true).then(res => res.json()).then(setGifts);
+        // Fetch Gifts
+        const giftsRes = await api.get('/api/admin/gifts', true);
+        if (giftsRes.ok) setGifts(await giftsRes.json());
+
+        // Fetch Promotions
+        const promoRes = await api.get('/api/admin/promotions', true);
+        if (promoRes.ok) setPromotions(await promoRes.json());
+
+        // Fetch Ads
+        const adsRes = await api.get('/api/admin/ads', true);
+        if (adsRes.ok) setAds(await adsRes.json());
+
+    } catch (e) {
+        console.error(e);
+        toast.error('Failed to load admin data');
+    } finally {
+        setDataLoading(false);
+    }
   };
 
   const saveSettings = async () => {
@@ -101,6 +103,49 @@ export default function AdminPage() {
         console.error('Failed to update role:', error);
         toast.error('Failed to update user role');
     }
+  };
+
+  const handleCreditUser = async (id: string, username: string) => {
+      const amountStr = prompt(`Enter amount of tokens to send to ${username} (use negative to deduct):`);
+      if (!amountStr) return;
+      const amount = parseInt(amountStr);
+      if (isNaN(amount)) {
+          alert('Invalid amount');
+          return;
+      }
+
+      try {
+          const res = await api.post(`/api/admin/users/${id}/credit`, { amount }, true);
+          if (res.ok) {
+              const data = await res.json();
+              toast.success(`Successfully sent ${amount} tokens to ${username}`);
+              // Refresh local state
+              setUsers(users.map(u => u._id === id ? { ...u, tokenBalance: data.newBalance } : u));
+          } else {
+              toast.error('Failed to credit user');
+          }
+      } catch (error) {
+          console.error(error);
+          toast.error('Error sending tokens');
+      }
+  };
+
+  const handleAdminSendGift = async (giftId: string) => {
+      if (!giftModalUser) return;
+      try {
+          const res = await api.post(`/api/admin/users/${giftModalUser.id}/gift`, { giftId }, true);
+          if (res.ok) {
+              const data = await res.json();
+              toast.success(`Sent gift to ${giftModalUser.username}`);
+              // Refresh user balance
+              setUsers(users.map(u => u._id === giftModalUser.id ? { ...u, tokenBalance: data.newBalance } : u));
+              setGiftModalUser(null);
+          } else {
+              toast.error('Failed to send gift');
+          }
+      } catch (e) {
+          toast.error('Error sending gift');
+      }
   };
 
   const addGift = async (e: React.FormEvent) => {
@@ -166,11 +211,106 @@ export default function AdminPage() {
       setSettings({ ...settings, paymentMethods: newMethods });
   };
 
-  if (loading) return <div style={{ color: 'white', padding: '2rem' }}>Loading Admin Panel...</div>;
+  // Promotions
+  const handleCreatePromotion = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = {
+          title: (form.elements.namedItem('title') as HTMLInputElement).value,
+          description: (form.elements.namedItem('description') as HTMLTextAreaElement).value,
+          startDate: (form.elements.namedItem('startDate') as HTMLInputElement).value,
+          endDate: (form.elements.namedItem('endDate') as HTMLInputElement).value,
+          bannerUrl: (form.elements.namedItem('bannerUrl') as HTMLInputElement).value,
+      };
+
+      try {
+          const res = await api.post('/api/admin/promotions', data, true);
+          if (res.ok) {
+              const newPromo = await res.json();
+              setPromotions([newPromo, ...promotions]);
+              toast.success('Promotion created');
+              form.reset();
+          } else {
+              toast.error('Failed to create promotion');
+          }
+      } catch (e) {
+          console.error(e);
+          toast.error('Error creating promotion');
+      }
+  };
+
+  const handleDeletePromotion = async (id: string) => {
+      if (!confirm('Delete this promotion?')) return;
+      try {
+          await apiFetch(`/api/admin/promotions/${id}`, { method: 'DELETE', requireAuth: true });
+          setPromotions(promotions.filter(p => p._id !== id));
+          toast.success('Promotion deleted');
+      } catch (e) {
+          toast.error('Failed to delete');
+      }
+  };
+
+  // Ads
+  const handleCreateAd = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = {
+          title: (form.elements.namedItem('title') as HTMLInputElement).value,
+          imageUrl: (form.elements.namedItem('imageUrl') as HTMLInputElement).value,
+          targetUrl: (form.elements.namedItem('targetUrl') as HTMLInputElement).value,
+          location: (form.elements.namedItem('location') as HTMLSelectElement).value,
+      };
+
+      try {
+          const res = await api.post('/api/admin/ads', data, true);
+          if (res.ok) {
+              const newAd = await res.json();
+              setAds([newAd, ...ads]);
+              toast.success('Ad created');
+              form.reset();
+          } else {
+              toast.error('Failed to create ad');
+          }
+      } catch (e) {
+          console.error(e);
+          toast.error('Error creating ad');
+      }
+  };
+
+  const handleDeleteAd = async (id: string) => {
+      if (!confirm('Delete this ad?')) return;
+      try {
+          await apiFetch(`/api/admin/ads/${id}`, { method: 'DELETE', requireAuth: true });
+          setAds(ads.filter(a => a._id !== id));
+          toast.success('Ad deleted');
+      } catch (e) {
+          toast.error('Failed to delete');
+      }
+  };
+
+  if (userLoading || dataLoading) {
+    return (
+        <div style={{ padding: '2rem' }}>
+            <Skeleton width="200px" height="40px" style={{ marginBottom: '2rem' }} />
+            <div style={{ display: 'flex', gap: '2rem' }}>
+                <div style={{ width: '250px' }}>
+                    <Skeleton width="100%" height="50px" style={{ marginBottom: '1rem' }} />
+                    <Skeleton width="100%" height="50px" style={{ marginBottom: '1rem' }} />
+                    <Skeleton width="100%" height="50px" style={{ marginBottom: '1rem' }} />
+                    <Skeleton width="100%" height="50px" />
+                </div>
+                <div style={{ flex: 1 }}>
+                    <Skeleton width="100%" height="300px" />
+                </div>
+            </div>
+        </div>
+    );
+  }
+
   if (!isAdmin) return null;
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', color: 'white' }}>
+    <div style={{ display: 'flex', height: '100vh', background: '#000', color: '#fff' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(18, 18, 18, 0.95)', backdropFilter: 'blur(10px)', margin: '-2rem -2rem 2rem -2rem', padding: '2rem 2rem 0 2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
             <h1>Admin Dashboard</h1>
@@ -183,6 +323,8 @@ export default function AdminPage() {
             <button onClick={() => setActiveTab('users')} style={{ padding: '10px 20px', background: activeTab === 'users' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Users</button>
             <button onClick={() => setActiveTab('gifts')} style={{ padding: '10px 20px', background: activeTab === 'gifts' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Gifts</button>
             <button onClick={() => setActiveTab('economy')} style={{ padding: '10px 20px', background: activeTab === 'economy' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Economy</button>
+            <button onClick={() => setActiveTab('promotions')} style={{ padding: '10px 20px', background: activeTab === 'promotions' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Promotions</button>
+            <button onClick={() => setActiveTab('ads')} style={{ padding: '10px 20px', background: activeTab === 'ads' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Ads</button>
         </div>
       </div>
 
@@ -339,20 +481,74 @@ export default function AdminPage() {
                               </td>
                               <td style={{ padding: '10px' }}>{u.tokenBalance}</td>
                               <td style={{ padding: '10px' }}>
-                                  <select 
-                                    value={u.role} 
-                                    onChange={(e) => updateUserRole(u._id, e.target.value)}
-                                    style={{ padding: '5px', background: 'var(--bg-dark)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-                                  >
-                                      <option value="user">User</option>
-                                      <option value="model">Model</option>
-                                      <option value="admin">Admin</option>
-                                  </select>
+                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                      <select 
+                                        value={u.role} 
+                                        onChange={(e) => updateUserRole(u._id, e.target.value)}
+                                        style={{ padding: '5px', background: 'var(--bg-dark)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                                      >
+                                          <option value="user">User</option>
+                                          <option value="model">Model</option>
+                                          <option value="admin">Admin</option>
+                                      </select>
+                                      <button 
+                                        onClick={() => handleCreditUser(u._id, u.username)}
+                                        style={{ padding: '5px 10px', background: 'var(--accent-secondary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                      >
+                                        💰 Send Tokens
+                                      </button>
+                                      <button 
+                                        onClick={() => setGiftModalUser({ id: u._id, username: u.username })}
+                                        style={{ padding: '5px 10px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                      >
+                                        🎁 Send Gift
+                                      </button>
+                                  </div>
                               </td>
                           </tr>
                       ))}
                   </tbody>
               </table>
+
+              {giftModalUser && (
+                  <div style={{
+                      position: 'fixed',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      background: 'rgba(0,0,0,0.8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1000
+                  }}>
+                      <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', maxWidth: '500px', width: '90%' }}>
+                          <h3>Send Gift to {giftModalUser.username}</h3>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '1rem', maxHeight: '400px', overflowY: 'auto', margin: '1rem 0' }}>
+                              {gifts.map(g => (
+                                  <button 
+                                    key={g.id || g._id}
+                                    onClick={() => handleAdminSendGift(g.id || g._id)}
+                                    style={{
+                                        background: 'var(--bg-dark)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '8px',
+                                        padding: '1rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                  >
+                                      <span style={{ fontSize: '2rem' }}>{g.icon}</span>
+                                      <span style={{ fontSize: '0.8rem' }}>{g.name}</span>
+                                      <span style={{ fontSize: '0.7rem', color: 'var(--accent-secondary)' }}>{g.price}</span>
+                                  </button>
+                              ))}
+                          </div>
+                          <button onClick={() => setGiftModalUser(null)} style={{ width: '100%', padding: '10px', background: '#333', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+                      </div>
+                  </div>
+              )}
           </div>
       )}
 
@@ -514,6 +710,72 @@ export default function AdminPage() {
                   <button onClick={saveSettings} style={{ padding: '12px 30px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }}>
                     Save Economy Settings
                   </button>
+              </div>
+          </div>
+      )}
+
+      {/* Promotions Tab */}
+      {activeTab === 'promotions' && (
+          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h2>Promotions</h2>
+              <form onSubmit={handleCreatePromotion} style={{ display: 'grid', gap: '1rem', marginBottom: '2rem', background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px' }}>
+                  <input name="title" placeholder="Title" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
+                  <textarea name="description" placeholder="Description" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px', minHeight: '60px' }} />
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                      <input name="startDate" type="datetime-local" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px', flex: 1 }} />
+                      <input name="endDate" type="datetime-local" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px', flex: 1 }} />
+                  </div>
+                  <input name="bannerUrl" placeholder="Banner URL" style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
+                  <button type="submit" style={{ padding: '10px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Create Promotion</button>
+              </form>
+
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                  {promotions.map(p => (
+                      <div key={p._id} style={{ background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', position: 'relative' }}>
+                          <h3 style={{ margin: '0 0 0.5rem 0' }}>{p.title}</h3>
+                          <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>{p.description}</p>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              {new Date(p.startDate).toLocaleDateString()} - {new Date(p.endDate).toLocaleDateString()}
+                          </div>
+                          <button 
+                            onClick={() => handleDeletePromotion(p._id)}
+                            style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                          >🗑️</button>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      )}
+
+      {/* Ads Tab */}
+      {activeTab === 'ads' && (
+          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h2>Advertisements</h2>
+              <form onSubmit={handleCreateAd} style={{ display: 'grid', gap: '1rem', marginBottom: '2rem', background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px' }}>
+                  <input name="title" placeholder="Title" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
+                  <input name="imageUrl" placeholder="Image URL" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
+                  <input name="targetUrl" placeholder="Target URL" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
+                  <select name="location" style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }}>
+                      <option value="home-top">Home Top</option>
+                      <option value="video-overlay">Video Overlay</option>
+                      <option value="sidebar">Sidebar</option>
+                      <option value="footer">Footer</option>
+                  </select>
+                  <button type="submit" style={{ padding: '10px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Create Ad</button>
+              </form>
+
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                  {ads.map(a => (
+                      <div key={a._id} style={{ background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', position: 'relative' }}>
+                          <h3 style={{ margin: '0 0 0.5rem 0' }}>{a.title} ({a.location})</h3>
+                          <a href={a.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-secondary)', fontSize: '0.9rem' }}>{a.targetUrl}</a>
+                          {a.imageUrl && <img src={a.imageUrl} alt={a.title} style={{ display: 'block', marginTop: '0.5rem', maxHeight: '100px', borderRadius: '4px' }} />}
+                          <button 
+                            onClick={() => handleDeleteAd(a._id)}
+                            style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                          >🗑️</button>
+                      </div>
+                  ))}
               </div>
           </div>
       )}

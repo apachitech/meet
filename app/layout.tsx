@@ -5,6 +5,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import { SiteConfigProvider } from './components/SiteConfigProvider';
+import { UserProvider } from './components/UserProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -41,8 +42,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className} data-lk-theme="default">
         <SiteConfigProvider>
-          <Toaster />
-          {children}
+          <UserProvider>
+            <Toaster />
+            {children}
+          </UserProvider>
         </SiteConfigProvider>
       </body>
     </html>
