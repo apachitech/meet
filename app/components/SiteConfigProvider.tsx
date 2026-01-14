@@ -9,6 +9,7 @@ interface SiteSettings {
   backgroundUrl?: string;
   homeTitle: string;
   homeSubtitle: string;
+  gridTitle?: string;
   categories: { id: string; label: string; path: string }[];
 }
 
@@ -20,6 +21,7 @@ export const SiteConfigProvider = ({ children }: { children: React.ReactNode }) 
     primaryColor: '#ef4444',
     homeTitle: 'Live Cams',
     homeSubtitle: 'Explore thousands of live cam models.',
+    gridTitle: 'Live Cams',
     categories: [
       { id: 'featured', label: 'Featured', path: '/featured' },
       { id: 'girls', label: 'Girls', path: '/girls' },

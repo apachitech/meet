@@ -6,6 +6,7 @@ export interface ISettings extends Document {
   backgroundUrl: string;
   homeTitle: string;
   homeSubtitle: string;
+  gridTitle: string;
   categories: { id: string; label: string; path: string }[];
   tokenPackages: { id: string; tokens: number; price: number; label: string; popular?: boolean }[];
   paymentMethods: { id: string; name: string; enabled: boolean }[];
@@ -42,6 +43,7 @@ const settingsSchema = new mongoose.Schema({
   backgroundUrl: { type: String, default: '' },
   homeTitle: { type: String, default: 'Live Cams' },
   homeSubtitle: { type: String, default: 'Explore thousands of live cam models.' },
+  gridTitle: { type: String, default: 'Live Cams' },
   categories: { 
     type: [categorySchema], 
     default: [
