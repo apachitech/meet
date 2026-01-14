@@ -12,7 +12,7 @@ const getUsernameColor = (username: string) => {
   return `hsl(${hue}, 75%, 60%)`; 
 };
 
-export const OverlayChat = () => {
+export const OverlayChat = ({ mode = 'overlay' }: { mode?: 'overlay' | 'embedded' }) => {
   const { chatMessages, send } = useChat();
   const { message } = useDataChannel('gift');
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -117,7 +117,14 @@ export const OverlayChat = () => {
   return (
     <div 
         className="overlay-chat-container"
-        style={{
+        style={mode === 'embedded' ? {
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'var(--bg-card)',
+            borderLeft: '1px solid var(--border-color)',
+        } : {
             position: 'absolute',
             bottom: isMobile ? '20px' : '100px',
             left: isMobile ? '8px' : '20px',

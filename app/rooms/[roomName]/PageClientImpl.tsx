@@ -148,10 +148,38 @@ export function PageClientImpl(props: {
   }, [props.roomName, props.region]);
 
   return (
-    <main data-lk-theme="default" style={{ height: '100%' }}>
+    <main data-lk-theme="default" style={{ height: '100%', background: '#000' }}>
       {connectionDetails === undefined ? (
-        <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-          <div>Loading...</div>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#121212' }}>
+           {/* Skeleton Header */}
+           <div style={{ height: '60px', background: '#1a1a1a', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', padding: '0 2rem' }}>
+              <div className="skeleton" style={{ width: '150px', height: '24px', background: '#333', borderRadius: '4px' }}></div>
+           </div>
+           
+           <div style={{ display: 'flex', flex: 1 }}>
+              {/* Skeleton Video */}
+              <div style={{ flex: 1, position: 'relative', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <div className="skeleton" style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#1a1a1a' }}></div>
+              </div>
+              
+              {/* Skeleton Sidebar */}
+              <div style={{ width: '350px', background: '#1a1a1a', borderLeft: '1px solid #333', padding: '1rem' }}>
+                 <div className="skeleton" style={{ width: '100%', height: '40px', background: '#333', borderRadius: '8px', marginBottom: '1rem' }}></div>
+                 <div className="skeleton" style={{ width: '100%', height: '200px', background: '#333', borderRadius: '8px' }}></div>
+              </div>
+           </div>
+
+           <style jsx>{`
+             .skeleton {
+               animation: skeleton-loading 1.5s infinite linear;
+               background-image: linear-gradient(90deg, #1a1a1a 0px, #2a2a2a 40px, #1a1a1a 80px);
+               background-size: 200% 100%;
+             }
+             @keyframes skeleton-loading {
+               0% { background-position: 100% 0; }
+               100% { background-position: -100% 0; }
+             }
+           `}</style>
         </div>
       ) : (
         <VideoConferenceComponent
@@ -439,7 +467,7 @@ function VideoConferenceComponent(props: {
     console.error(error);
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     room.on(RoomEvent.Reconnecting, handleReconnecting);
     room.on(RoomEvent.Reconnected, handleReconnected);
     room.on(RoomEvent.Disconnected, handleDisconnected);
@@ -477,8 +505,16 @@ function VideoConferenceComponent(props: {
     };
   }, [e2eeSetupComplete, room, props.connectionDetails, props.userChoices, connectOptions, handleEncryptionError, handleError, handleDisconnected, handleReconnecting, handleReconnected]);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
-    <div className="lk-room-container">
+    <div className="lk-room-container" style={{ height: '100%', overflow: 'hidden' }}>
       <RoomContext.Provider value={room}>
         {isReconnecting && (
             <div style={{
@@ -548,7 +584,7 @@ function VideoConferenceComponent(props: {
         {showBlur && (
           <div style={{
             position: 'absolute',
-            top: 0, left: 0, right: 320, bottom: 0,
+            top: 0, left: 0, right: isMobile ? 0 : 350, bottom: 0,
             background: 'rgba(0,0,0,0.95)',
             backdropFilter: 'blur(20px)',
             zIndex: 40,
@@ -563,14 +599,46 @@ function VideoConferenceComponent(props: {
           </div>
         )}
         <KeyboardShortcuts />
-        <StreamingStage roomName={props.roomName} privateState={privateState} />
-        <OverlayChat />
-        <LiveStatsBar roomName={props.roomName} />
-        <SpectatorRow payerName={privateState.payer} />
-        <LikeButton roomName={props.roomName} />
-        <CustomControls />
+        
+        <div style={{ 
+          display: isMobile ? 'block' : 'flex', 
+          height: '100%', 
+          width: '100%' 
+        }}>
+           {/* Video Area */}
+           <div style={{ 
+             flex: 1, 
+             position: 'relative', 
+             height: isMobile ? '100%' : '100%',
+             overflow: 'hidden'
+           }}>
+              <StreamingStage roomName={props.roomName} privateState={privateState} />
+              
+              {/* Overlays that sit on top of video */}
+              {isMobile && <OverlayChat mode="overlay" />}
+              <LiveStatsBar roomName={props.roomName} />
+              <SpectatorRow payerName={privateState.payer} />
+              <LikeButton roomName={props.roomName} />
+              <CustomControls />
+              <RecordingIndicator />
+           </div>
+
+           {/* Desktop Sidebar */}
+           {!isMobile && (
+             <div style={{ 
+               width: '350px', 
+               height: '100%', 
+               borderLeft: '1px solid var(--border-color)',
+               background: 'var(--bg-card)',
+               position: 'relative',
+               zIndex: 20
+             }}>
+                <OverlayChat mode="embedded" />
+             </div>
+           )}
+        </div>
+
         <DebugMode />
-        <RecordingIndicator />
         <GiftOverlay roomName={props.roomName} username={props.userChoices.username} />
       </RoomContext.Provider>
     </div>
