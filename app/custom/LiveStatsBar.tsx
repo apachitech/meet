@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useDataChannel } from '@livekit/components-react';
 import { useEffect, useState } from 'react';
 import { API_BASE } from '../../lib/api';
@@ -96,10 +97,10 @@ export function LiveStatsBar({ roomName }: { roomName: string }) {
         }}
         title="Show stats"
       >
-        <img
+        <Image
           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(roomName)}`}
           alt="Profile"
-          style={{ width: '100%', height: '100%' }}
+          fill
         />
       </button>
       <div

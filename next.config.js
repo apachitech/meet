@@ -4,6 +4,12 @@ const nextConfig = {
   productionBrowserSourceMaps: true,
   images: {
     formats: ['image/webp'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+      },
+    ],
   },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }) => {
     // Exclude backend directory from compilation

@@ -778,6 +778,7 @@ export default function AdminPage() {
                       <div key={a._id} style={{ background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', position: 'relative' }}>
                           <h3 style={{ margin: '0 0 0.5rem 0' }}>{a.title} ({a.location})</h3>
                           <a href={a.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-secondary)', fontSize: '0.9rem' }}>{a.targetUrl}</a>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           {a.imageUrl && <img src={a.imageUrl} alt={a.title} style={{ display: 'block', marginTop: '0.5rem', maxHeight: '100px', borderRadius: '4px' }} />}
                           <button 
                             onClick={() => handleDeleteAd(a._id)}

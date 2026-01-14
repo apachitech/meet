@@ -17,6 +17,12 @@ export default function Page() {
   const [models, setModels] = useState<{ id: string; username: string }[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = localStorage.getItem('token');
+    setToken(t);
+  }, []);
 
   const fetchModels = useCallback(async () => {
     try {

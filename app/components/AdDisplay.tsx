@@ -45,6 +45,7 @@ export function AdDisplay({ location, className, style }: AdDisplayProps) {
   return (
     <div className={className} style={{ ...style, position: 'relative', overflow: 'hidden' }}>
       <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', height: '100%' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
           src={ad.imageUrl} 
           alt={ad.title} 
