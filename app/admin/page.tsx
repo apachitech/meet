@@ -390,6 +390,15 @@ export default function AdminPage() {
                           style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
                       />
                   </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Grid Title (e.g., Live Cams)</label>
+                      <input 
+                          type="text" 
+                          value={settings.gridTitle || ''} 
+                          onChange={e => setSettings({...settings, gridTitle: e.target.value})}
+                          style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
+                      />
+                  </div>
               </div>
 
               <div>

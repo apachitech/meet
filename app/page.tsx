@@ -161,10 +161,10 @@ export default function Page() {
         <main className={styles.content}>
           <div className={styles.hero}>
             <h1 className={styles.title}>
-              Welcome to <span className={styles.highlight}>{settings?.siteName || 'Apacciflix'}</span>
+              {settings?.homeTitle || <>Welcome to <span className={styles.highlight}>{settings?.siteName || 'Apacciflix'}</span></>}
             </h1>
             <p className={styles.description}>
-              Interactive Live Streaming Platform. Connect, Share, and Earn.
+              {settings?.homeSubtitle || 'Interactive Live Streaming Platform. Connect, Share, and Earn.'}
             </p>
             <div className={styles.cta}>
               <button className={styles.primaryBtn} onClick={goLive}>
@@ -175,6 +175,10 @@ export default function Page() {
               </button>
             </div>
           </div>
+
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', marginTop: '2rem' }}>
+            {settings?.gridTitle || 'Live Cams'}
+          </h2>
 
           <div className={styles.grid}>
             {loadingModels ? (

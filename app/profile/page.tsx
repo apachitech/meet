@@ -301,8 +301,8 @@ export default function ProfilePage() {
     };
 
     return (
-        <div className={styles.container}>
-                <Toaster position="top-right" />
+        <div className={styles.profileContainer}>
+            <Toaster position="top-right" />
                 
                 {/* Full Width Sticky Header */}
                 <div className={styles.stickyHeader}>
@@ -367,7 +367,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                <div className={styles.profileContent}>
+                <div className={styles.profileContent} style={{ flex: 1 }}>
                     {renderContent()}
 
                     <div className={styles.logoutSection}>
@@ -376,8 +376,7 @@ export default function ProfilePage() {
                         </button>
                     </div>
                 </div>
-            </div>
-            <div aria-hidden style={{ height: '200px', flexShrink: 0 }} />
+            <div style={{ height: '200px', flexShrink: 0 }} />
             <div style={{ flexShrink: 0, position: 'relative', zIndex: 10 }}>
                 <Footer />
             </div>
