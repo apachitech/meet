@@ -158,7 +158,8 @@ export const OverlayChat = ({ mode = 'overlay' }: { mode?: 'overlay' | 'embedded
         
         {visible && (
             <div style={{
-                maxHeight: isMobile ? '200px' : '300px',
+                flex: mode === 'embedded' ? 1 : undefined,
+                maxHeight: mode === 'embedded' ? 'none' : (isMobile ? '200px' : '300px'),
                 width: '100%',
                 overflowY: 'auto',
                 maskImage: 'linear-gradient(to top, black 80%, transparent 100%)',

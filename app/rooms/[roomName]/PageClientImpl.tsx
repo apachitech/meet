@@ -41,6 +41,7 @@ import { TokenStore } from '@/app/custom/TokenStore';
 import { api, API_BASE } from '../../../lib/api';
 import { usePrivateStatus } from '../../../lib/usePrivateStatus';
 import { LiveStatsBar } from '@/app/custom/LiveStatsBar';
+import { RelatedBroadcasts } from '@/app/custom/RelatedBroadcasts';
 
 const CONN_DETAILS_ENDPOINT =
   process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
@@ -609,18 +610,29 @@ function VideoConferenceComponent(props: {
            <div style={{ 
              flex: 1, 
              position: 'relative', 
-             height: isMobile ? '100%' : '100%',
-             overflow: 'hidden'
+             height: isMobile ? 'auto' : '100%',
+             overflowY: isMobile ? 'visible' : 'auto',
+             overflowX: 'hidden'
            }}>
-              <StreamingStage roomName={props.roomName} privateState={privateState} />
-              
-              {/* Overlays that sit on top of video */}
-              {isMobile && <OverlayChat mode="overlay" />}
-              <LiveStatsBar roomName={props.roomName} />
-              <SpectatorRow payerName={privateState.payer} />
-              <LikeButton roomName={props.roomName} />
-              <CustomControls />
-              <RecordingIndicator />
+              <div style={{ 
+                  position: 'relative', 
+                  width: '100%', 
+                  height: isMobile ? '100vh' : '100%',
+                  minHeight: isMobile ? '100vh' : '600px'
+              }}>
+                  <StreamingStage roomName={props.roomName} privateState={privateState} />
+                  
+                  {/* Overlays that sit on top of video */}
+                  {isMobile && <OverlayChat mode="overlay" />}
+                  <LiveStatsBar roomName={props.roomName} />
+                  <SpectatorRow payerName={privateState.payer} />
+                  <LikeButton roomName={props.roomName} />
+                  <CustomControls />
+                  <RecordingIndicator />
+              </div>
+
+              {/* Related Broadcasts Section */}
+              <RelatedBroadcasts currentRoom={props.roomName} />
            </div>
 
            {/* Desktop Sidebar */}
