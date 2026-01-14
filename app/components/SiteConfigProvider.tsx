@@ -7,6 +7,9 @@ interface SiteSettings {
   siteName: string;
   primaryColor: string;
   backgroundUrl?: string;
+  homeTitle: string;
+  homeSubtitle: string;
+  categories: { id: string; label: string; path: string }[];
 }
 
 const SiteConfigContext = createContext<SiteSettings | null>(null);
@@ -15,6 +18,16 @@ export const SiteConfigProvider = ({ children }: { children: React.ReactNode }) 
   const [settings, setSettings] = useState<SiteSettings>({
     siteName: 'Apacciflix',
     primaryColor: '#ef4444',
+    homeTitle: 'Live Cams',
+    homeSubtitle: 'Explore thousands of live cam models.',
+    categories: [
+      { id: 'featured', label: 'Featured', path: '/featured' },
+      { id: 'girls', label: 'Girls', path: '/girls' },
+      { id: 'couples', label: 'Couples', path: '/couples' },
+      { id: 'trans', label: 'Trans', path: '/trans' },
+      { id: 'men', label: 'Men', path: '/men' },
+      { id: 'vr', label: 'VR', path: '/vr' }
+    ]
   });
 
   useEffect(() => {

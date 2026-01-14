@@ -13,7 +13,7 @@ const GIFT_ICONS = [
 
 export default function AdminPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'gifts' | 'economy'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy'>('settings');
   const [isAdmin, setIsAdmin] = useState(false);
   
   // Data
@@ -179,6 +179,7 @@ export default function AdminPage() {
 
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #333', overflowX: 'auto', paddingBottom: '1rem' }}>
             <button onClick={() => setActiveTab('settings')} style={{ padding: '10px 20px', background: activeTab === 'settings' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Settings</button>
+            <button onClick={() => setActiveTab('home')} style={{ padding: '10px 20px', background: activeTab === 'home' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Home</button>
             <button onClick={() => setActiveTab('users')} style={{ padding: '10px 20px', background: activeTab === 'users' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Users</button>
             <button onClick={() => setActiveTab('gifts')} style={{ padding: '10px 20px', background: activeTab === 'gifts' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Gifts</button>
             <button onClick={() => setActiveTab('economy')} style={{ padding: '10px 20px', background: activeTab === 'economy' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Economy</button>
@@ -220,6 +221,93 @@ export default function AdminPage() {
                 Save Changes
             </button>
         </div>
+      )}
+
+      {/* Home Tab */}
+      {activeTab === 'home' && (
+          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h2>Home Page Content</h2>
+              
+              <div style={{ marginBottom: '2rem' }}>
+                  <h3>Hero Section</h3>
+                  <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Title</label>
+                      <input 
+                          type="text" 
+                          value={settings.homeTitle || ''} 
+                          onChange={e => setSettings({...settings, homeTitle: e.target.value})}
+                          style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
+                      />
+                  </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Subtitle</label>
+                      <input 
+                          type="text" 
+                          value={settings.homeSubtitle || ''} 
+                          onChange={e => setSettings({...settings, homeSubtitle: e.target.value})}
+                          style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
+                      />
+                  </div>
+              </div>
+
+              <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3>Categories Menu</h3>
+                    <button 
+                        onClick={() => {
+                            const newCat = { id: `cat_${Date.now()}`, label: 'New Category', path: '/' };
+                            setSettings({...settings, categories: [...(settings.categories || []), newCat]});
+                        }}
+                        style={{ background: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border-color)', padding: '5px 15px', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                        + Add Category
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                      {settings.categories?.map((cat: any, index: number) => (
+                          <div key={cat.id || index} style={{ display: 'flex', gap: '1rem', background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', alignItems: 'center', border: '1px solid var(--border-color)' }}>
+                              <div style={{ flex: 1 }}>
+                                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Label</label>
+                                  <input 
+                                    value={cat.label} 
+                                    onChange={(e) => {
+                                        const newCats = [...settings.categories];
+                                        newCats[index] = { ...cat, label: e.target.value };
+                                        setSettings({...settings, categories: newCats});
+                                    }}
+                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #444', width: '100%' }}
+                                  />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Path</label>
+                                  <input 
+                                    value={cat.path} 
+                                    onChange={(e) => {
+                                        const newCats = [...settings.categories];
+                                        newCats[index] = { ...cat, path: e.target.value };
+                                        setSettings({...settings, categories: newCats});
+                                    }}
+                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #444', width: '100%' }}
+                                  />
+                              </div>
+                              <button 
+                                onClick={() => {
+                                    const newCats = settings.categories.filter((_: any, i: number) => i !== index);
+                                    setSettings({...settings, categories: newCats});
+                                }} 
+                                style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                              >✕</button>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+              <div style={{ marginTop: '2rem' }}>
+                <button onClick={saveSettings} style={{ padding: '10px 20px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+                    Save Changes
+                </button>
+              </div>
+          </div>
       )}
 
       {/* Users Tab */}

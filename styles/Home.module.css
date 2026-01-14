@@ -60,6 +60,37 @@
   background: #444;
 }
 
+.hamburgerBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.closeBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 140;
+}
+
 /* Layout Container */
 .container {
   display: flex;
@@ -278,7 +309,7 @@
   }
 }
 
-@media screen and (max-width: 639px) {
+@media screen and (max-width: 767px) {
   .main {
     padding-bottom: 0;
   }
@@ -310,8 +341,37 @@
     font-size: 0.65rem;
   }
 
+  .hamburgerBtn {
+    display: block;
+  }
+  
+  .closeBtn {
+    display: block;
+  }
+
+  .overlay {
+    display: block;
+  }
+
   .sidebar {
-    display: none;
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    height: 100vh;
+    background: var(--bg-sidebar);
+    z-index: 150;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+    padding: 1rem;
+    padding-top: 1rem;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
   }
 
   .container {
@@ -324,13 +384,13 @@
   }
 
   /* Stream Cards */
-  .streamGrid {
+  .modelGrid {
     grid-template-columns: 1fr;
     gap: 1rem;
     padding: 0.75rem;
   }
 
-  .streamCard {
+  .modelCard {
     height: 200px;
   }
 
@@ -366,13 +426,13 @@
     padding: 0.5rem;
   }
 
-  .streamGrid {
+  .modelGrid {
     grid-template-columns: 1fr;
     gap: 0.75rem;
     padding: 0.5rem;
   }
 
-  .streamCard {
+  .modelCard {
     height: 180px;
   }
 

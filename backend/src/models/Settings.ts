@@ -4,6 +4,9 @@ export interface ISettings extends Document {
   siteName: string;
   primaryColor: string;
   backgroundUrl: string;
+  homeTitle: string;
+  homeSubtitle: string;
+  categories: { id: string; label: string; path: string }[];
   tokenPackages: { id: string; tokens: number; price: number; label: string; popular?: boolean }[];
   paymentMethods: { id: string; name: string; enabled: boolean }[];
 }
@@ -12,6 +15,12 @@ interface ISettingsModel extends Model<ISettings> {
   get(): Promise<ISettings>;
   update(updates: any): Promise<ISettings>;
 }
+
+const categorySchema = new mongoose.Schema({
+  id: String,
+  label: String,
+  path: String
+}, { _id: false });
 
 const tokenPackageSchema = new mongoose.Schema({
   id: String,
@@ -31,6 +40,19 @@ const settingsSchema = new mongoose.Schema({
   siteName: { type: String, default: 'Apacciflix' },
   primaryColor: { type: String, default: '#ef4444' },
   backgroundUrl: { type: String, default: '' },
+  homeTitle: { type: String, default: 'Live Cams' },
+  homeSubtitle: { type: String, default: 'Explore thousands of live cam models.' },
+  categories: { 
+    type: [categorySchema], 
+    default: [
+      { id: 'featured', label: 'Featured', path: '/featured' },
+      { id: 'girls', label: 'Girls', path: '/girls' },
+      { id: 'couples', label: 'Couples', path: '/couples' },
+      { id: 'trans', label: 'Trans', path: '/trans' },
+      { id: 'men', label: 'Men', path: '/men' },
+      { id: 'vr', label: 'VR', path: '/vr' }
+    ]
+  },
   tokenPackages: { 
       type: [tokenPackageSchema], 
       default: [

@@ -13,6 +13,7 @@ export default function Page() {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<{ username: string; role: 'user' | 'model' | 'admin'; tokenBalance: number } | null>(null);
   const [models, setModels] = useState<{ id: string; username: string }[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -67,8 +68,16 @@ export default function Page() {
   return (
     <div className={styles.main}>
       <nav className={styles.navbar}>
-        <div className={styles.logo}>
-          {settings?.siteName || 'Apacciflix'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button 
+            className={styles.hamburgerBtn}
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            ☰
+          </button>
+          <div className={styles.logo}>
+            {settings?.siteName || 'Apacciflix'}
+          </div>
         </div>
         <div className={styles.navActions}>
           {token && user ? (
@@ -106,15 +115,43 @@ export default function Page() {
       </nav>
 
       <div className={styles.container}>
-        <aside className={styles.sidebar}>
-          <h3>Categories</h3>
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className={styles.overlay} 
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
+        <aside className={`${styles.sidebar} ${isMobileMenuOpen ? styles.open : ''}`}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3>Categories</h3>
+            <button 
+              className={styles.closeBtn}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              ✕
+            </button>
+          </div>
           <ul className={styles.sidebarMenu}>
-            <li className={`${styles.sidebarItem} ${styles.active}`}>Featured</li>
-            <li className={styles.sidebarItem}>Girls</li>
-            <li className={styles.sidebarItem}>Couples</li>
-            <li className={styles.sidebarItem}>Trans</li>
-            <li className={styles.sidebarItem}>Men</li>
-            <li className={styles.sidebarItem}>VR</li>
+            {settings?.categories?.map((cat) => (
+               <li 
+                 key={cat.id} 
+                 className={`${styles.sidebarItem} ${cat.id === 'featured' ? styles.active : ''}`}
+                 onClick={() => router.push(cat.path)}
+               >
+                 {cat.label}
+               </li>
+            )) || (
+              <>
+                <li className={`${styles.sidebarItem} ${styles.active}`}>Featured</li>
+                <li className={styles.sidebarItem}>Girls</li>
+                <li className={styles.sidebarItem}>Couples</li>
+                <li className={styles.sidebarItem}>Trans</li>
+                <li className={styles.sidebarItem}>Men</li>
+                <li className={styles.sidebarItem}>VR</li>
+              </>
+            )}
           </ul>
           
           {token && (
@@ -130,8 +167,8 @@ export default function Page() {
         <main className={styles.content}>
           <div className={styles.hero}>
             <div>
-              <h1>Live Cams</h1>
-              <p>Explore thousands of live cam models.</p>
+              <h1>{settings?.homeTitle || 'Live Cams'}</h1>
+              <p>{settings?.homeSubtitle || 'Explore thousands of live cam models.'}</p>
             </div>
             {user?.role === 'model' && (
               <button className="lk-button" onClick={goLive} style={{ padding: '0.8rem 1.5rem', fontSize: '1rem' }}>
