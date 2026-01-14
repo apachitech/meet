@@ -15,8 +15,10 @@ import { startPrivateShow, stopPrivateShow, getPrivateStatus, initPrivateShowMon
 import { getBattleStatus, startBattle, stopBattle } from './battles.js';
 import { createOrder, captureOrder } from './payment.js';
 import { 
-    getSettings, updateSettings, getUsers, updateUserRole, 
-    adminAddGift, adminUpdateGift, adminDeleteGift, adminGetGifts 
+  getSettings, updateSettings, getUsers, updateUserRole, adminCreditUser, adminSendGift,
+  adminGetGifts, adminAddGift, adminUpdateGift, adminDeleteGift,
+  adminGetPromotions, adminAddPromotion, adminUpdatePromotion, adminDeletePromotion,
+  adminGetAds, adminAddAd, adminUpdateAd, adminDeleteAd, getActiveAds
 } from './admin.js';
 import { authenticateAdmin } from './middleware.js';
 
@@ -151,12 +153,29 @@ app.get('/api/admin/settings', getSettings); // Public read for now? Or auth? Id
 app.put('/api/admin/settings', authenticateAdmin, updateSettings);
 app.get('/api/admin/users', authenticateAdmin, getUsers);
 app.put('/api/admin/users/:id/role', authenticateAdmin, updateUserRole);
+app.post('/api/admin/users/:id/credit', authenticateAdmin, adminCreditUser);
+app.post('/api/admin/users/:id/gift', authenticateAdmin, adminSendGift);
 
 // Admin Gift Management
 app.get('/api/admin/gifts', adminGetGifts); // Public/Admin
 app.post('/api/admin/gifts', authenticateAdmin, adminAddGift);
 app.put('/api/admin/gifts/:id', authenticateAdmin, adminUpdateGift);
 app.delete('/api/admin/gifts/:id', authenticateAdmin, adminDeleteGift);
+
+// Admin Promotions
+app.get('/api/admin/promotions', authenticateAdmin, adminGetPromotions);
+app.post('/api/admin/promotions', authenticateAdmin, adminAddPromotion);
+app.put('/api/admin/promotions/:id', authenticateAdmin, adminUpdatePromotion);
+app.delete('/api/admin/promotions/:id', authenticateAdmin, adminDeletePromotion);
+
+// Admin Ads
+app.get('/api/admin/ads', authenticateAdmin, adminGetAds);
+app.post('/api/admin/ads', authenticateAdmin, adminAddAd);
+app.put('/api/admin/ads/:id', authenticateAdmin, adminUpdateAd);
+app.delete('/api/admin/ads/:id', authenticateAdmin, adminDeleteAd);
+
+// Public Ads
+app.get('/api/ads', getActiveAds);
 
 app.get('/', (req: any, res: any) => {
   res.send('Backend server is running!');

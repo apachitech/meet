@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useSiteConfig } from './SiteConfigProvider';
+import { AdDisplay } from './AdDisplay';
 
 export const Footer = () => {
   const settings = useSiteConfig();
@@ -15,6 +16,10 @@ export const Footer = () => {
       marginTop: 'auto',
       color: 'var(--text-muted)'
     }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto 2rem auto' }}>
+        <AdDisplay location="footer" style={{ width: '100%', height: '100px' }} />
+      </div>
+
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
