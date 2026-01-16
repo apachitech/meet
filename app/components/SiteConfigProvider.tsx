@@ -24,10 +24,8 @@ export const SiteConfigProvider = ({ children }: { children: React.ReactNode }) 
     gridTitle: 'Live Cams',
     categories: [
       { id: 'featured', label: 'Featured', path: '/featured' },
-      { id: 'girls', label: 'Girls', path: '/girls' },
-      { id: 'couples', label: 'Couples', path: '/couples' },
-      { id: 'trans', label: 'Trans', path: '/trans' },
-      { id: 'men', label: 'Men', path: '/men' },
+      { id: 'girls', label: 'Female', path: '/girls' },
+      { id: 'men', label: 'Male', path: '/men' },
       { id: 'vr', label: 'VR', path: '/vr' }
     ]
   });
@@ -37,9 +35,13 @@ export const SiteConfigProvider = ({ children }: { children: React.ReactNode }) 
       .then(res => res.json())
       .then(data => {
         setSettings(data);
-        document.documentElement.style.setProperty('--accent-primary', data.primaryColor);
+        if (data.primaryColor) {
+            document.documentElement.style.setProperty('--accent-primary', data.primaryColor);
+        }
         if (data.backgroundUrl) {
             document.documentElement.style.setProperty('--bg-image', `url(${data.backgroundUrl})`);
+        } else {
+            document.documentElement.style.removeProperty('--bg-image');
         }
       })
       .catch(console.error);

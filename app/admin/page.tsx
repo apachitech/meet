@@ -16,7 +16,7 @@ const GIFT_ICONS = [
 export default function AdminPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
-  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy' | 'promotions' | 'ads'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy' | 'promotions' | 'ads' | 'sections'>('settings');
   const [isAdmin, setIsAdmin] = useState(false);
   
   // Data
@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [gifts, setGifts] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
   const [ads, setAds] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
   
   // Loading
   const [dataLoading, setDataLoading] = useState(true);
@@ -72,6 +73,10 @@ export default function AdminPage() {
         // Fetch Ads
         const adsRes = await api.get('/api/admin/ads', true);
         if (adsRes.ok) setAds(await adsRes.json());
+
+        // Fetch Sections
+        const sectionsRes = await api.get('/api/admin/sections', true);
+        if (sectionsRes.ok) setSections(await sectionsRes.json());
 
     } catch (e) {
         console.error(e);
@@ -177,7 +182,7 @@ export default function AdminPage() {
       if(!confirm('Delete this gift?')) return;
       try {
           await apiFetch(`/api/admin/gifts/${id}`, { method: 'DELETE', requireAuth: true });
-          setGifts(gifts.filter(g => g.id !== id));
+          setGifts(gifts.filter(g => (g._id || g.id) !== id));
           toast.success('Gift deleted successfully');
       } catch (error) {
           console.error('Failed to delete gift:', error);
@@ -288,6 +293,44 @@ export default function AdminPage() {
       }
   };
 
+  // Sections
+  const handleCreateSection = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = {
+          title: (form.elements.namedItem('title') as HTMLInputElement).value,
+          filterType: (form.elements.namedItem('filterType') as HTMLSelectElement).value,
+          filterValue: (form.elements.namedItem('filterValue') as HTMLInputElement).value,
+          order: Number((form.elements.namedItem('order') as HTMLInputElement).value),
+      };
+
+      try {
+          const res = await api.post('/api/admin/sections', data, true);
+          if (res.ok) {
+              const newSection = await res.json();
+              setSections([...sections, newSection].sort((a, b) => a.order - b.order));
+              toast.success('Section created');
+              form.reset();
+          } else {
+              toast.error('Failed to create section');
+          }
+      } catch (e) {
+          console.error(e);
+          toast.error('Error creating section');
+      }
+  };
+
+  const handleDeleteSection = async (id: string) => {
+      if (!confirm('Delete this section?')) return;
+      try {
+          await apiFetch(`/api/admin/sections/${id}`, { method: 'DELETE', requireAuth: true });
+          setSections(sections.filter(s => s._id !== id));
+          toast.success('Section deleted');
+      } catch (e) {
+          toast.error('Failed to delete');
+      }
+  };
+
   if (userLoading || dataLoading) {
     return (
         <div style={{ padding: '2rem' }}>
@@ -310,106 +353,193 @@ export default function AdminPage() {
   if (!isAdmin) return null;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#000', color: '#fff' }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(18, 18, 18, 0.95)', backdropFilter: 'blur(10px)', margin: '-2rem -2rem 2rem -2rem', padding: '2rem 2rem 0 2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h1>Admin Dashboard</h1>
-            <button onClick={() => router.push('/')} style={{ background: '#333', color: 'white', border: 'none', padding: '10px 20px', cursor: 'pointer', borderRadius: '4px' }}>Back to Home</button>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5', fontFamily: 'Inter, sans-serif' }}>
+      
+      {/* Sidebar Navigation */}
+      <div style={{ 
+          width: '260px', 
+          background: '#121212', 
+          borderRight: '1px solid #333', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          position: 'fixed', 
+          height: '100vh', 
+          zIndex: 100 
+      }}>
+        <div style={{ padding: '2rem', borderBottom: '1px solid #222' }}>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--accent-primary)', margin: 0, letterSpacing: '-0.5px' }}>Admin Console</h1>
+            <p style={{ fontSize: '0.8rem', color: '#666', margin: '5px 0 0 0' }}>v1.0.0</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #333', overflowX: 'auto', paddingBottom: '1rem' }}>
-            <button onClick={() => setActiveTab('settings')} style={{ padding: '10px 20px', background: activeTab === 'settings' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Settings</button>
-            <button onClick={() => setActiveTab('home')} style={{ padding: '10px 20px', background: activeTab === 'home' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Home</button>
-            <button onClick={() => setActiveTab('users')} style={{ padding: '10px 20px', background: activeTab === 'users' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Users</button>
-            <button onClick={() => setActiveTab('gifts')} style={{ padding: '10px 20px', background: activeTab === 'gifts' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Gifts</button>
-            <button onClick={() => setActiveTab('economy')} style={{ padding: '10px 20px', background: activeTab === 'economy' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Economy</button>
-            <button onClick={() => setActiveTab('promotions')} style={{ padding: '10px 20px', background: activeTab === 'promotions' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Promotions</button>
-            <button onClick={() => setActiveTab('ads')} style={{ padding: '10px 20px', background: activeTab === 'ads' ? 'var(--accent-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px', flexShrink: 0 }}>Ads</button>
+        <nav style={{ flex: 1, padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto' }}>
+            {[
+                { id: 'settings', label: 'Settings', icon: '⚙️' },
+                { id: 'home', label: 'Home Layout', icon: '🏠' },
+                { id: 'users', label: 'User Management', icon: '👥' },
+                { id: 'gifts', label: 'Gifts', icon: '🎁' },
+                { id: 'economy', label: 'Economy', icon: '💰' },
+                { id: 'promotions', label: 'Promotions', icon: '📣' },
+                { id: 'ads', label: 'Advertisements', icon: '📺' },
+                { id: 'sections', label: 'Sections', icon: '📑' }
+            ].map(tab => (
+                <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    style={{
+                        textAlign: 'left',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        background: activeTab === tab.id ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                        color: activeTab === tab.id ? 'var(--accent-primary)' : '#aaa',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '0.95rem',
+                        fontWeight: activeTab === tab.id ? 600 : 400,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    <span>{tab.icon}</span>
+                    {tab.label}
+                </button>
+            ))}
+        </nav>
+
+        <div style={{ padding: '1.5rem', borderTop: '1px solid #222' }}>
+            <button 
+                onClick={() => router.push('/')} 
+                style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    background: '#222', 
+                    color: '#fff', 
+                    border: '1px solid #333', 
+                    borderRadius: '8px', 
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    transition: 'background 0.2s'
+                }}
+            >
+                ← Back to Site
+            </button>
         </div>
       </div>
 
+      {/* Main Content Area */}
+      <div style={{ marginLeft: '260px', flex: 1, padding: '3rem', maxWidth: '1200px' }}>
+        
+        {/* Header */}
+        <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, color: '#fff' }}>
+                    {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                </h2>
+                <p style={{ color: '#666', marginTop: '0.5rem' }}>Manage your platform configuration</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 600 }}>{user?.username}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--accent-primary)' }}>Administrator</div>
+                </div>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                    {user?.username?.[0]?.toUpperCase()}
+                </div>
+            </div>
+        </div>
+
       {/* Settings Tab */}
       {activeTab === 'settings' && (
-        <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <h2>General Appearance</h2>
-            <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Site Name</label>
-                <input 
-                    type="text" 
-                    value={settings.siteName || ''} 
-                    onChange={e => setSettings({...settings, siteName: e.target.value})}
-                    style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
-                />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+            <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                <h3 style={{ marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '1rem', marginBottom: '1.5rem' }}>General Appearance</h3>
+                
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Site Name</label>
+                    <input 
+                        type="text" 
+                        value={settings.siteName || ''} 
+                        onChange={e => setSettings({...settings, siteName: e.target.value})}
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+                
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Primary Color</label>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <input 
+                            type="color" 
+                            value={settings.primaryColor || '#ef4444'} 
+                            onChange={e => setSettings({...settings, primaryColor: e.target.value})}
+                            style={{ width: '60px', height: '60px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} 
+                        />
+                        <span style={{ color: '#fff', fontFamily: 'monospace' }}>{settings.primaryColor || '#ef4444'}</span>
+                    </div>
+                </div>
+
+                <div style={{ marginBottom: '2rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Background Image URL</label>
+                    <input 
+                        type="text" 
+                        value={settings.backgroundUrl || ''} 
+                        onChange={e => setSettings({...settings, backgroundUrl: e.target.value})}
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+
+                <button onClick={saveSettings} style={{ width: '100%', padding: '14px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+                    Save Changes
+                </button>
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Primary Color</label>
-                <input 
-                    type="color" 
-                    value={settings.primaryColor || '#ef4444'} 
-                    onChange={e => setSettings({...settings, primaryColor: e.target.value})}
-                    style={{ width: '100px', height: '40px', background: 'none', border: 'none', cursor: 'pointer' }} 
-                />
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Background Image URL</label>
-                <input 
-                    type="text" 
-                    value={settings.backgroundUrl || ''} 
-                    onChange={e => setSettings({...settings, backgroundUrl: e.target.value})}
-                    style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
-                />
-            </div>
-            <button onClick={saveSettings} style={{ padding: '10px 20px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                Save Changes
-            </button>
         </div>
       )}
 
       {/* Home Tab */}
       {activeTab === 'home' && (
-          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h2>Home Page Content</h2>
-              
-              <div style={{ marginBottom: '2rem' }}>
-                  <h3>Hero Section</h3>
-                  <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Title</label>
-                      <input 
-                          type="text" 
-                          value={settings.homeTitle || ''} 
-                          onChange={e => setSettings({...settings, homeTitle: e.target.value})}
-                          style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
-                      />
+          <div style={{ display: 'grid', gap: '2rem' }}>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                  <h3 style={{ marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Hero Section</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Main Title</label>
+                        <input 
+                            type="text" 
+                            value={settings.homeTitle || ''} 
+                            onChange={e => setSettings({...settings, homeTitle: e.target.value})}
+                            style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Subtitle</label>
+                        <input 
+                            type="text" 
+                            value={settings.homeSubtitle || ''} 
+                            onChange={e => setSettings({...settings, homeSubtitle: e.target.value})}
+                            style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                        />
+                    </div>
                   </div>
-                  <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Subtitle</label>
-                      <input 
-                          type="text" 
-                          value={settings.homeSubtitle || ''} 
-                          onChange={e => setSettings({...settings, homeSubtitle: e.target.value})}
-                          style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
-                      />
-                  </div>
-                  <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Grid Title (e.g., Live Cams)</label>
+                  <div style={{ marginTop: '1.5rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Grid Section Title</label>
                       <input 
                           type="text" 
                           value={settings.gridTitle || ''} 
                           onChange={e => setSettings({...settings, gridTitle: e.target.value})}
-                          style={{ width: '100%', padding: '10px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px' }} 
+                          style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
                       />
                   </div>
               </div>
 
-              <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3>Categories Menu</h3>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #333', paddingBottom: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>Categories Menu</h3>
                     <button 
                         onClick={() => {
                             const newCat = { id: `cat_${Date.now()}`, label: 'New Category', path: '/' };
                             setSettings({...settings, categories: [...(settings.categories || []), newCat]});
                         }}
-                        style={{ background: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border-color)', padding: '5px 15px', borderRadius: '4px', cursor: 'pointer' }}
+                        style={{ background: '#222', color: 'white', border: '1px solid #333', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
                     >
                         + Add Category
                     </button>
@@ -417,9 +547,9 @@ export default function AdminPage() {
                   
                   <div style={{ display: 'grid', gap: '1rem' }}>
                       {settings.categories?.map((cat: any, index: number) => (
-                          <div key={cat.id || index} style={{ display: 'flex', gap: '1rem', background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', alignItems: 'center', border: '1px solid var(--border-color)' }}>
+                          <div key={cat.id || index} style={{ display: 'flex', gap: '1rem', background: '#0a0a0a', padding: '1rem', borderRadius: '8px', alignItems: 'center', border: '1px solid #333' }}>
                               <div style={{ flex: 1 }}>
-                                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Label</label>
+                                  <label style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '4px' }}>Label</label>
                                   <input 
                                     value={cat.label} 
                                     onChange={(e) => {
@@ -427,11 +557,11 @@ export default function AdminPage() {
                                         newCats[index] = { ...cat, label: e.target.value };
                                         setSettings({...settings, categories: newCats});
                                     }}
-                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #444', width: '100%' }}
+                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #333', width: '100%', padding: '4px 0', fontSize: '0.95rem' }}
                                   />
                               </div>
                               <div style={{ flex: 1 }}>
-                                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Path</label>
+                                  <label style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '4px' }}>Path</label>
                                   <input 
                                     value={cat.path} 
                                     onChange={(e) => {
@@ -439,7 +569,7 @@ export default function AdminPage() {
                                         newCats[index] = { ...cat, path: e.target.value };
                                         setSettings({...settings, categories: newCats});
                                     }}
-                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #444', width: '100%' }}
+                                    style={{ background: 'transparent', border: 'none', color: '#aaa', borderBottom: '1px solid #333', width: '100%', padding: '4px 0', fontSize: '0.95rem' }}
                                   />
                               </div>
                               <button 
@@ -447,15 +577,16 @@ export default function AdminPage() {
                                     const newCats = settings.categories.filter((_: any, i: number) => i !== index);
                                     setSettings({...settings, categories: newCats});
                                 }} 
-                                style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', border: 'none', cursor: 'pointer', width: '32px', height: '32px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               >✕</button>
                           </div>
                       ))}
                   </div>
               </div>
-              <div style={{ marginTop: '2rem' }}>
-                <button onClick={saveSettings} style={{ padding: '10px 20px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                    Save Changes
+              
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={saveSettings} style={{ padding: '14px 40px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)' }}>
+                    Save All Changes
                 </button>
               </div>
           </div>
@@ -463,98 +594,117 @@ export default function AdminPage() {
 
       {/* Users Tab */}
       {activeTab === 'users' && (
-          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h2>User Management</h2>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                          <th style={{ padding: '10px', color: 'var(--text-muted)' }}>Username</th>
-                          <th style={{ padding: '10px', color: 'var(--text-muted)' }}>Email</th>
-                          <th style={{ padding: '10px', color: 'var(--text-muted)' }}>Role</th>
-                          <th style={{ padding: '10px', color: 'var(--text-muted)' }}>Balance</th>
-                          <th style={{ padding: '10px', color: 'var(--text-muted)' }}>Actions</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-                      {users.map(u => (
-                          <tr key={u._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                              <td style={{ padding: '10px' }}>{u.username}</td>
-                              <td style={{ padding: '10px' }}>{u.email}</td>
-                              <td style={{ padding: '10px' }}>
-                                  <span style={{ 
-                                      padding: '2px 8px', 
-                                      borderRadius: '4px', 
-                                      background: u.role === 'admin' ? '#ef4444' : u.role === 'model' ? '#eab308' : '#333',
-                                      fontSize: '0.8rem'
-                                  }}>{u.role}</span>
-                              </td>
-                              <td style={{ padding: '10px' }}>{u.tokenBalance}</td>
-                              <td style={{ padding: '10px' }}>
-                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                      <select 
-                                        value={u.role} 
-                                        onChange={(e) => updateUserRole(u._id, e.target.value)}
-                                        style={{ padding: '5px', background: 'var(--bg-dark)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-                                      >
-                                          <option value="user">User</option>
-                                          <option value="model">Model</option>
-                                          <option value="admin">Admin</option>
-                                      </select>
-                                      <button 
-                                        onClick={() => handleCreditUser(u._id, u.username)}
-                                        style={{ padding: '5px 10px', background: 'var(--accent-secondary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                                      >
-                                        💰 Send Tokens
-                                      </button>
-                                      <button 
-                                        onClick={() => setGiftModalUser({ id: u._id, username: u.username })}
-                                        style={{ padding: '5px 10px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                                      >
-                                        🎁 Send Gift
-                                      </button>
-                                  </div>
-                              </td>
+          <div style={{ background: '#121212', borderRadius: '12px', border: '1px solid #333', overflow: 'hidden' }}>
+              <div style={{ padding: '1.5rem', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0 }}>User Directory</h3>
+                  <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Total Users: {users.length}</div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                          <tr style={{ background: '#0a0a0a', borderBottom: '1px solid #333' }}>
+                              <th style={{ padding: '16px', color: '#888', fontWeight: 500, fontSize: '0.9rem' }}>User</th>
+                              <th style={{ padding: '16px', color: '#888', fontWeight: 500, fontSize: '0.9rem' }}>Email</th>
+                              <th style={{ padding: '16px', color: '#888', fontWeight: 500, fontSize: '0.9rem' }}>Role</th>
+                              <th style={{ padding: '16px', color: '#888', fontWeight: 500, fontSize: '0.9rem' }}>Balance</th>
+                              <th style={{ padding: '16px', color: '#888', fontWeight: 500, fontSize: '0.9rem' }}>Actions</th>
                           </tr>
-                      ))}
-                  </tbody>
-              </table>
+                      </thead>
+                      <tbody>
+                          {users.map(u => (
+                              <tr key={u._id} style={{ borderBottom: '1px solid #222' }}>
+                                  <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
+                                          {u.username[0].toUpperCase()}
+                                      </div>
+                                      <span style={{ fontWeight: 500 }}>{u.username}</span>
+                                  </td>
+                                  <td style={{ padding: '16px', color: '#aaa' }}>{u.email}</td>
+                                  <td style={{ padding: '16px' }}>
+                                      <span style={{ 
+                                          padding: '4px 10px', 
+                                          borderRadius: '20px', 
+                                          background: u.role === 'admin' ? 'rgba(239, 68, 68, 0.2)' : u.role === 'model' ? 'rgba(234, 179, 8, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                          color: u.role === 'admin' ? '#ef4444' : u.role === 'model' ? '#eab308' : '#aaa',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 600,
+                                          textTransform: 'capitalize'
+                                      }}>{u.role}</span>
+                                  </td>
+                                  <td style={{ padding: '16px', fontFamily: 'monospace' }}>{u.tokenBalance} 🪙</td>
+                                  <td style={{ padding: '16px' }}>
+                                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                          <select 
+                                            value={u.role} 
+                                            onChange={(e) => updateUserRole(u._id, e.target.value)}
+                                            style={{ padding: '6px 10px', background: '#0a0a0a', color: '#fff', border: '1px solid #333', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer' }}
+                                          >
+                                              <option value="user">User</option>
+                                              <option value="model">Model</option>
+                                              <option value="admin">Admin</option>
+                                          </select>
+                                          <button 
+                                            onClick={() => handleCreditUser(u._id, u.username)}
+                                            style={{ padding: '6px 10px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                            title="Add Tokens"
+                                          >
+                                            💰
+                                          </button>
+                                          <button 
+                                            onClick={() => setGiftModalUser({ id: u._id, username: u.username })}
+                                            style={{ padding: '6px 10px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                            title="Send Gift"
+                                          >
+                                            🎁
+                                          </button>
+                                      </div>
+                                  </td>
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+              </div>
 
               {giftModalUser && (
                   <div style={{
                       position: 'fixed',
                       top: 0, left: 0, right: 0, bottom: 0,
                       background: 'rgba(0,0,0,0.8)',
+                      backdropFilter: 'blur(5px)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       zIndex: 1000
                   }}>
-                      <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', maxWidth: '500px', width: '90%' }}>
-                          <h3>Send Gift to {giftModalUser.username}</h3>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '1rem', maxHeight: '400px', overflowY: 'auto', margin: '1rem 0' }}>
+                      <div style={{ background: '#121212', padding: '2rem', borderRadius: '16px', maxWidth: '500px', width: '90%', border: '1px solid #333', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+                          <h3 style={{ marginTop: 0 }}>Send Gift to <span style={{ color: 'var(--accent-primary)' }}>{giftModalUser.username}</span></h3>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '1rem', maxHeight: '400px', overflowY: 'auto', margin: '1.5rem 0' }}>
                               {gifts.map(g => (
                                   <button 
                                     key={g.id || g._id}
                                     onClick={() => handleAdminSendGift(g.id || g._id)}
                                     style={{
-                                        background: 'var(--bg-dark)',
-                                        border: '1px solid var(--border-color)',
-                                        borderRadius: '8px',
+                                        background: '#0a0a0a',
+                                        border: '1px solid #333',
+                                        borderRadius: '12px',
                                         padding: '1rem',
                                         cursor: 'pointer',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'center',
-                                        gap: '0.5rem'
+                                        gap: '0.5rem',
+                                        transition: 'all 0.2s'
                                     }}
+                                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary)'}
+                                    onMouseOut={(e) => e.currentTarget.style.borderColor = '#333'}
                                   >
                                       <span style={{ fontSize: '2rem' }}>{g.icon}</span>
-                                      <span style={{ fontSize: '0.8rem' }}>{g.name}</span>
-                                      <span style={{ fontSize: '0.7rem', color: 'var(--accent-secondary)' }}>{g.price}</span>
+                                      <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{g.name}</span>
+                                      <span style={{ fontSize: '0.7rem', color: 'var(--accent-secondary)' }}>{g.price} tk</span>
                                   </button>
                               ))}
                           </div>
-                          <button onClick={() => setGiftModalUser(null)} style={{ width: '100%', padding: '10px', background: '#333', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+                          <button onClick={() => setGiftModalUser(null)} style={{ width: '100%', padding: '12px', background: '#333', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
                       </div>
                   </div>
               )}
@@ -563,75 +713,83 @@ export default function AdminPage() {
 
       {/* Gifts Tab */}
       {activeTab === 'gifts' && (
-          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h2>Gift Economy</h2>
-              
-              <div style={{ marginBottom: '2rem', background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <h3 style={{ marginTop: 0 }}>Create New Gift</h3>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Choose an icon or paste your own URL/Emoji:</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '2rem' }}>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333', height: 'fit-content' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Create New Gift</h3>
+                  
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <p style={{ fontSize: '0.9rem', color: '#aaa', marginBottom: '1rem' }}>Select Icon</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px', background: '#0a0a0a', padding: '10px', borderRadius: '8px', border: '1px solid #333' }}>
                         {GIFT_ICONS.map(icon => (
                             <button 
                                 key={icon}
                                 type="button"
                                 onClick={() => setNewGiftIcon(icon)}
                                 style={{
-                                    fontSize: '1.5rem',
-                                    background: newGiftIcon === icon ? 'var(--accent-primary)' : '#333',
+                                    fontSize: '1.4rem',
+                                    background: newGiftIcon === icon ? 'var(--accent-primary)' : 'transparent',
                                     border: 'none',
-                                    borderRadius: '4px',
+                                    borderRadius: '6px',
                                     cursor: 'pointer',
-                                    width: '40px',
-                                    height: '40px'
+                                    width: '36px',
+                                    height: '36px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.2s'
                                 }}
                             >{icon}</button>
                         ))}
                     </div>
                   </div>
 
-                  <form onSubmit={addGift} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'end' }}>
+                  <form onSubmit={addGift} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                       <div>
-                          <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px', color: 'var(--text-secondary)' }}>Name</label>
-                          <input name="name" required placeholder="Gift Name" style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Name</label>
+                          <input name="name" required placeholder="e.g. Red Rose" style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
                       </div>
                       <div>
-                          <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px', color: 'var(--text-secondary)' }}>Icon (Emoji/URL)</label>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Icon (Emoji/URL)</label>
                           <input 
                              name="icon" 
                              required 
                              placeholder="🌹" 
                              value={newGiftIcon}
                              onChange={(e) => setNewGiftIcon(e.target.value)}
-                             style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} 
+                             style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} 
                           />
                       </div>
-                      <div>
-                          <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px', color: 'var(--text-secondary)' }}>Price</label>
-                          <input name="price" type="number" required placeholder="10" style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                          <div>
+                              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Price</label>
+                              <input name="price" type="number" required placeholder="10" style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                          </div>
+                          <div>
+                              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Type</label>
+                              <select name="type" style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }}>
+                                  <option value="standard">Standard</option>
+                                  <option value="premium">Premium</option>
+                                  <option value="luxury">Luxury</option>
+                              </select>
+                          </div>
                       </div>
-                      <div>
-                          <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '5px', color: 'var(--text-secondary)' }}>Type</label>
-                          <select name="type" style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }}>
-                              <option value="standard">Standard</option>
-                              <option value="premium">Premium</option>
-                              <option value="luxury">Luxury</option>
-                          </select>
-                      </div>
-                      <button type="submit" style={{ padding: '8px 20px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Add Gift</button>
+                      <button type="submit" style={{ marginTop: '1rem', padding: '12px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>+ Add Gift</button>
                   </form>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1.5rem', alignContent: 'start' }}>
                   {gifts.map(g => (
-                      <div key={g.id} style={{ background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', position: 'relative', border: '1px solid var(--border-color)' }}>
-                          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{g.icon}</div>
-                          <h3 style={{ margin: '0 0 0.5rem 0' }}>{g.name}</h3>
-                          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{g.price} Tokens</p>
-                          <span style={{ fontSize: '0.7rem', opacity: 0.7, color: 'var(--text-muted)' }}>{g.type}</span>
+                      <div key={g._id || g.id} style={{ background: '#121212', padding: '1.5rem', borderRadius: '12px', position: 'relative', border: '1px solid #333', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform 0.2s', boxShadow: '0 4px 6px rgba(0,0,0,0.2)' }}>
+                          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{g.icon}</div>
+                          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', textAlign: 'center' }}>{g.name}</h3>
+                          <div style={{ background: '#222', padding: '4px 12px', borderRadius: '20px', fontSize: '0.9rem', color: '#fff', marginBottom: '0.5rem', fontWeight: 600 }}>
+                            {g.price} 🪙
+                          </div>
+                          <span style={{ fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>{g.type}</span>
                           <button 
-                            onClick={() => deleteGift(g.id)}
-                            style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                            onClick={() => deleteGift(g._id || g.id)}
+                            style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Delete Gift"
                           >🗑️</button>
                       </div>
                   ))}
@@ -641,73 +799,75 @@ export default function AdminPage() {
 
       {/* Economy Tab */}
       {activeTab === 'economy' && (
-          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h2>Token Economy Settings</h2>
-              
-              <div style={{ marginBottom: '3rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3>Token Packages</h3>
-                    <button onClick={addTokenPackage} style={{ background: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border-color)', padding: '5px 15px', borderRadius: '4px', cursor: 'pointer' }}>+ Add Package</button>
+          <div style={{ display: 'grid', gap: '2rem' }}>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #333', paddingBottom: '1rem' }}>
+                    <div>
+                        <h3 style={{ margin: 0 }}>Token Packages</h3>
+                        <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem', color: '#666' }}>Define the token bundles available for purchase</p>
+                    </div>
+                    <button onClick={addTokenPackage} style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>+ Add Package</button>
                   </div>
                   
                   <div style={{ display: 'grid', gap: '1rem' }}>
                       {settings.tokenPackages?.map((pkg: any) => (
-                          <div key={pkg.id} style={{ display: 'flex', gap: '1rem', background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', alignItems: 'center', border: '1px solid var(--border-color)' }}>
-                              <div style={{ flex: 1 }}>
-                                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Label</label>
+                          <div key={pkg.id} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 100px 100px 50px', gap: '1.5rem', background: '#0a0a0a', padding: '1.5rem', borderRadius: '12px', alignItems: 'center', border: '1px solid #333' }}>
+                              <div>
+                                  <label style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '6px' }}>Label</label>
                                   <input 
                                     value={pkg.label} 
                                     onChange={(e) => updateTokenPackage(pkg.id, 'label', e.target.value)}
-                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #444', width: '100%' }}
+                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #333', width: '100%', padding: '6px 0', fontSize: '1rem', fontWeight: 500 }}
                                   />
                               </div>
-                              <div style={{ width: '100px' }}>
-                                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Tokens</label>
+                              <div>
+                                  <label style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '6px' }}>Tokens</label>
                                   <input 
                                     type="number"
                                     value={pkg.tokens} 
                                     onChange={(e) => updateTokenPackage(pkg.id, 'tokens', parseInt(e.target.value))}
-                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #444', width: '100%' }}
+                                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-secondary)', borderBottom: '1px solid #333', width: '100%', padding: '6px 0', fontSize: '1rem', fontWeight: 600 }}
                                   />
                               </div>
-                              <div style={{ width: '100px' }}>
-                                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Price ($)</label>
+                              <div>
+                                  <label style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '6px' }}>Price ($)</label>
                                   <input 
                                     type="number"
                                     value={pkg.price} 
                                     onChange={(e) => updateTokenPackage(pkg.id, 'price', parseFloat(e.target.value))}
-                                    style={{ background: 'transparent', border: 'none', color: 'white', borderBottom: '1px solid #444', width: '100%' }}
+                                    style={{ background: 'transparent', border: 'none', color: '#4ade80', borderBottom: '1px solid #333', width: '100%', padding: '6px 0', fontSize: '1rem', fontWeight: 600 }}
                                   />
                               </div>
-                              <div style={{ width: '100px' }}>
-                                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block' }}>Popular</label>
+                              <div style={{ textAlign: 'center' }}>
+                                  <label style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '6px' }}>Popular</label>
                                   <input 
                                     type="checkbox"
                                     checked={pkg.popular || false} 
                                     onChange={(e) => updateTokenPackage(pkg.id, 'popular', e.target.checked)}
+                                    style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
                                   />
                               </div>
-                              <button onClick={() => removeTokenPackage(pkg.id)} style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}>✕</button>
+                              <button onClick={() => removeTokenPackage(pkg.id)} style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', border: 'none', cursor: 'pointer', width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                           </div>
                       ))}
                   </div>
               </div>
 
-              <div>
-                  <h3>Payment Methods</h3>
-                  <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Payment Methods</h3>
+                  <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
                       {settings.paymentMethods?.map((method: any) => (
-                          <div key={method.id} style={{ background: 'var(--bg-dark)', padding: '1.5rem', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-color)' }}>
-                              <span style={{ fontWeight: 'bold' }}>{method.name}</span>
-                              <label className="switch" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <span style={{ fontSize: '0.8rem', color: method.enabled ? '#4ade80' : '#aaa' }}>
-                                      {method.enabled ? 'Enabled' : 'Disabled'}
-                                  </span>
+                          <div key={method.id} style={{ background: '#0a0a0a', padding: '1.5rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #333' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ fontSize: '1.5rem' }}>{method.id === 'stripe' ? '💳' : method.id === 'crypto' ? '₿' : '🏦'}</div>
+                                <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>{method.name}</span>
+                              </div>
+                              <label className="switch" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
                                   <input 
                                     type="checkbox" 
                                     checked={method.enabled} 
                                     onChange={() => togglePaymentMethod(method.id)}
-                                    style={{ transform: 'scale(1.2)' }}
+                                    style={{ width: '20px', height: '20px', accentColor: '#4ade80' }}
                                   />
                               </label>
                           </div>
@@ -715,8 +875,8 @@ export default function AdminPage() {
                   </div>
               </div>
               
-              <div style={{ marginTop: '2rem', textAlign: 'right' }}>
-                  <button onClick={saveSettings} style={{ padding: '12px 30px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem' }}>
+              <div style={{ textAlign: 'right' }}>
+                  <button onClick={saveSettings} style={{ padding: '14px 40px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)' }}>
                     Save Economy Settings
                   </button>
               </div>
@@ -725,70 +885,207 @@ export default function AdminPage() {
 
       {/* Promotions Tab */}
       {activeTab === 'promotions' && (
-          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h2>Promotions</h2>
-              <form onSubmit={handleCreatePromotion} style={{ display: 'grid', gap: '1rem', marginBottom: '2rem', background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px' }}>
-                  <input name="title" placeholder="Title" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
-                  <textarea name="description" placeholder="Description" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px', minHeight: '60px' }} />
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                      <input name="startDate" type="datetime-local" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px', flex: 1 }} />
-                      <input name="endDate" type="datetime-local" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px', flex: 1 }} />
-                  </div>
-                  <input name="bannerUrl" placeholder="Banner URL" style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
-                  <button type="submit" style={{ padding: '10px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Create Promotion</button>
-              </form>
-
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                  {promotions.map(p => (
-                      <div key={p._id} style={{ background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', position: 'relative' }}>
-                          <h3 style={{ margin: '0 0 0.5rem 0' }}>{p.title}</h3>
-                          <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>{p.description}</p>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                              {new Date(p.startDate).toLocaleDateString()} - {new Date(p.endDate).toLocaleDateString()}
+          <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '2rem' }}>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333', height: 'fit-content' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Create Promotion</h3>
+                  <form onSubmit={handleCreatePromotion} style={{ display: 'grid', gap: '1.2rem' }}>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Title</label>
+                          <input name="title" placeholder="Summer Sale" required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Description</label>
+                          <textarea name="description" placeholder="Get 20% extra tokens..." required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none', minHeight: '80px', resize: 'vertical' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                          <div>
+                              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Start Date</label>
+                              <input name="startDate" type="datetime-local" required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
                           </div>
+                          <div>
+                              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>End Date</label>
+                              <input name="endDate" type="datetime-local" required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                          </div>
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Banner URL (Optional)</label>
+                          <input name="bannerUrl" placeholder="https://..." style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <button type="submit" style={{ marginTop: '0.5rem', padding: '12px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Create Promotion</button>
+                  </form>
+              </div>
+
+              <div style={{ display: 'grid', gap: '1.5rem', alignContent: 'start' }}>
+                  {promotions.map(p => (
+                      <div key={p._id} style={{ background: '#121212', padding: '1.5rem', borderRadius: '12px', border: '1px solid #333', position: 'relative', display: 'flex', gap: '1.5rem' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '0.5rem' }}>
+                                <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>ACTIVE</span>
+                                <h3 style={{ margin: 0 }}>{p.title}</h3>
+                            </div>
+                            <p style={{ margin: '0 0 1rem 0', color: '#aaa', lineHeight: 1.5 }}>{p.description}</p>
+                            <div style={{ display: 'flex', gap: '2rem', fontSize: '0.85rem', color: '#666' }}>
+                                <div><span style={{ color: '#888' }}>Starts:</span> {new Date(p.startDate).toLocaleDateString()}</div>
+                                <div><span style={{ color: '#888' }}>Ends:</span> {new Date(p.endDate).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                          {p.bannerUrl && (
+                              <div style={{ width: '120px', height: '80px', borderRadius: '8px', overflow: 'hidden', background: '#333' }}>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={p.bannerUrl} alt="Promo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              </div>
+                          )}
                           <button 
                             onClick={() => handleDeletePromotion(p._id)}
-                            style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                            style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', opacity: 0.7 }}
+                            title="Delete Promotion"
                           >🗑️</button>
                       </div>
                   ))}
+                  {promotions.length === 0 && (
+                      <div style={{ padding: '3rem', textAlign: 'center', color: '#666', background: '#121212', borderRadius: '12px', border: '1px dashed #333' }}>
+                          No active promotions found. Create one to engage your users!
+                      </div>
+                  )}
               </div>
           </div>
       )}
 
       {/* Ads Tab */}
       {activeTab === 'ads' && (
-          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h2>Advertisements</h2>
-              <form onSubmit={handleCreateAd} style={{ display: 'grid', gap: '1rem', marginBottom: '2rem', background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px' }}>
-                  <input name="title" placeholder="Title" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
-                  <input name="imageUrl" placeholder="Image URL" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
-                  <input name="targetUrl" placeholder="Target URL" required style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }} />
-                  <select name="location" style={{ padding: '8px', background: '#333', border: 'none', color: 'white', borderRadius: '4px' }}>
-                      <option value="home-top">Home Top</option>
-                      <option value="video-overlay">Video Overlay</option>
-                      <option value="sidebar">Sidebar</option>
-                      <option value="footer">Footer</option>
-                  </select>
-                  <button type="submit" style={{ padding: '10px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Create Ad</button>
-              </form>
+          <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '2rem' }}>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333', height: 'fit-content' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>New Advertisement</h3>
+                  <form onSubmit={handleCreateAd} style={{ display: 'grid', gap: '1.2rem' }}>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Internal Title</label>
+                          <input name="title" placeholder="Nike Summer Campaign" required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Image URL</label>
+                          <input name="imageUrl" placeholder="https://..." required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Target URL</label>
+                          <input name="targetUrl" placeholder="https://nike.com" required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Placement</label>
+                          <select name="location" style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }}>
+                              <option value="home-top">Home Top Banner</option>
+                              <option value="video-overlay">Video Player Overlay</option>
+                              <option value="sidebar">Sidebar Widget</option>
+                              <option value="footer">Footer Banner</option>
+                          </select>
+                      </div>
+                      <button type="submit" style={{ marginTop: '0.5rem', padding: '12px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Create Ad</button>
+                  </form>
+              </div>
 
-              <div style={{ display: 'grid', gap: '1rem' }}>
+              <div style={{ display: 'grid', gap: '1.5rem', alignContent: 'start' }}>
                   {ads.map(a => (
-                      <div key={a._id} style={{ background: 'var(--bg-dark)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', position: 'relative' }}>
-                          <h3 style={{ margin: '0 0 0.5rem 0' }}>{a.title} ({a.location})</h3>
-                          <a href={a.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-secondary)', fontSize: '0.9rem' }}>{a.targetUrl}</a>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          {a.imageUrl && <img src={a.imageUrl} alt={a.title} style={{ display: 'block', marginTop: '0.5rem', maxHeight: '100px', borderRadius: '4px' }} />}
-                          <button 
-                            onClick={() => handleDeleteAd(a._id)}
-                            style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                          >🗑️</button>
+                      <div key={a._id} style={{ background: '#121212', padding: '1.5rem', borderRadius: '12px', border: '1px solid #333', position: 'relative' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{a.title}</h3>
+                              <span style={{ fontSize: '0.8rem', background: '#333', padding: '2px 8px', borderRadius: '4px', color: '#aaa' }}>{a.location}</span>
+                          </div>
+                          
+                          <div style={{ marginBottom: '1rem', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333', background: '#000', maxHeight: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              {a.imageUrl ? (
+                                <img src={a.imageUrl} alt={a.title} style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }} />
+                              ) : (
+                                <div style={{ padding: '2rem', color: '#666' }}>No Image Preview</div>
+                              )}
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <a href={a.targetUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-secondary)', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                {a.targetUrl} ↗
+                            </a>
+                            <button 
+                                onClick={() => handleDeleteAd(a._id)}
+                                style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px 12px', borderRadius: '6px', fontSize: '0.85rem' }}
+                            >
+                                Delete Ad
+                            </button>
+                          </div>
                       </div>
                   ))}
+                  {ads.length === 0 && (
+                      <div style={{ padding: '3rem', textAlign: 'center', color: '#666', background: '#121212', borderRadius: '12px', border: '1px dashed #333' }}>
+                          No active advertisements. Add one to monetize your traffic.
+                      </div>
+                  )}
               </div>
           </div>
       )}
+
+      {/* Sections Tab */}
+      {activeTab === 'sections' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '2rem' }}>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333', height: 'fit-content' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>New Section</h3>
+                  <form onSubmit={handleCreateSection} style={{ display: 'grid', gap: '1.2rem' }}>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Section Title</label>
+                          <input name="title" placeholder="e.g. Popular in Europe" required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Filter Type</label>
+                          <select name="filterType" style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }}>
+                              <option value="all">All Models</option>
+                              <option value="recommended">Recommended</option>
+                              <option value="new">Newest</option>
+                              <option value="tag">By Tag</option>
+                              <option value="random">Random</option>
+                          </select>
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Filter Value (for Tag)</label>
+                          <input name="filterValue" placeholder="e.g. South African" style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Order Priority</label>
+                          <input name="order" type="number" defaultValue={0} style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <button type="submit" style={{ marginTop: '0.5rem', padding: '12px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Create Section</button>
+                  </form>
+              </div>
+
+              <div style={{ display: 'grid', gap: '1.5rem', alignContent: 'start' }}>
+                  {sections.map(s => (
+                      <div key={s._id} style={{ background: '#121212', padding: '1.5rem', borderRadius: '12px', border: '1px solid #333', position: 'relative' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{s.title}</h3>
+                              <span style={{ fontSize: '0.8rem', background: '#333', padding: '2px 8px', borderRadius: '4px', color: '#aaa' }}>Order: {s.order}</span>
+                          </div>
+                          
+                          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', color: '#aaa' }}>
+                              <div>Type: <span style={{ color: 'white' }}>{s.filterType}</span></div>
+                              {s.filterValue && <div>Value: <span style={{ color: 'white' }}>{s.filterValue}</span></div>}
+                          </div>
+
+                          <div style={{ position: 'absolute', top: '15px', right: '15px' }}>
+                            <button 
+                                onClick={() => handleDeleteSection(s._id)}
+                                style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px 12px', borderRadius: '6px', fontSize: '0.85rem' }}
+                            >
+                                Delete
+                            </button>
+                          </div>
+                      </div>
+                  ))}
+                  {sections.length === 0 && (
+                      <div style={{ padding: '3rem', textAlign: 'center', color: '#666', background: '#121212', borderRadius: '12px', border: '1px dashed #333' }}>
+                          No custom sections. The default sections will be shown on the home page.
+                      </div>
+                  )}
+              </div>
+          </div>
+      )}
+      
+      </div>
     </div>
   );
 }

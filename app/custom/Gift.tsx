@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 interface Gift {
+  _id?: string;
   id: string;
   name: string;
   price: number;
@@ -23,8 +24,8 @@ export const Gift = ({ onSendGift }: { onSendGift: (giftId: string, price: numbe
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
       {gifts.map((gift) => (
         <button
-          key={gift.id}
-          onClick={() => onSendGift(gift.id, gift.price, gift.name)}
+          key={gift._id || gift.id}
+          onClick={() => onSendGift(gift._id || gift.id, gift.price, gift.name)}
           style={{
             background: gift.type === 'luxury' ? 'linear-gradient(135deg, #2a2a2a, #3a3a3a)' : 'var(--bg-card-hover)',
             border: gift.type === 'premium' ? '1px solid var(--accent-primary)' : gift.type === 'luxury' ? '1px solid gold' : '1px solid var(--border-color)',

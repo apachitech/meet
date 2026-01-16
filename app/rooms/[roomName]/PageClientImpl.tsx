@@ -381,22 +381,28 @@ function VideoConferenceComponent(props: {
     const publishDefaults: TrackPublishDefaults = {
       dtx: true,
       videoSimulcastLayers: props.options.hq
-        ? [VideoPresets.h1080, VideoPresets.h720]
-        : [VideoPresets.h540, VideoPresets.h216],
-      red: !e2eeEnabled,
+        ? [VideoPresets.h1080, VideoPresets.h720, VideoPresets.h360]
+        : [VideoPresets.h720, VideoPresets.h360, VideoPresets.h180],
+      red: !e2eeEnabled, // Redundant Audio Data for smoothness
       videoCodec,
+      backupCodec: { codec: 'vp8', encoding: VideoPresets.h540.encoding }, // Fallback for compatibility
     };
     return {
       videoCaptureDefaults: videoCaptureDefaults,
       publishDefaults: publishDefaults,
       audioCaptureDefaults: {
         deviceId: props.userChoices.audioDeviceId ?? undefined,
+        autoGainControl: true,
+        echoCancellation: true,
+        noiseSuppression: true,
       },
       adaptiveStream: true,
       dynacast: true,
       e2ee: keyProvider && worker && e2eeEnabled ? { keyProvider, worker } : undefined,
       singlePeerConnection: true,
-    };
+      // Optimize for fast connection
+      joinRetries: 3,
+    } as RoomOptions;
   }, [props.userChoices, props.options.hq, props.options.codec, e2eeEnabled, keyProvider, worker]);
 
   const room = React.useMemo(() => new Room(roomOptions), [roomOptions]);
@@ -685,6 +691,12 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
     setPrivateState(hookStatus);
   }, [roomName, hookStatus, refreshUser]);
 
+  useEffect(() => {
+    const handleToggleGift = () => setIsOpen(prev => !prev);
+    window.addEventListener('TOGGLE_GIFT_MENU', handleToggleGift);
+    return () => window.removeEventListener('TOGGLE_GIFT_MENU', handleToggleGift);
+  }, []);
+
   const handleSendGift = async (giftId: string, price: number, name: string, recipient: RemoteParticipant) => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -702,6 +714,15 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
           giftName: name,
           price: price
         };
+        
+        // Persist gift to Chat DB
+        await api.post('/api/chat/message', {
+            roomName: roomName,
+            sender: username,
+            content: JSON.stringify(giftMessage),
+            type: 'gift'
+        }, false).catch(console.error);
+
         if (room && room.localParticipant) {
           await room.localParticipant.publishData(
             new TextEncoder().encode(JSON.stringify(giftMessage)),

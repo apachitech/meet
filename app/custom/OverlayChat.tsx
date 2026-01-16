@@ -1,7 +1,9 @@
 'use client';
 
-import { useChat, useDataChannel } from '@livekit/components-react';
+import { useChat, useDataChannel, useRoomContext, useLocalParticipant } from '@livekit/components-react';
 import { useState, useEffect, useRef } from 'react';
+import { api } from '../../lib/api';
+import EmojiPicker from 'emoji-picker-react';
 
 const getUsernameColor = (username: string) => {
   let hash = 0;
@@ -15,9 +17,14 @@ const getUsernameColor = (username: string) => {
 export const OverlayChat = ({ mode = 'overlay' }: { mode?: 'overlay' | 'embedded' }) => {
   const { chatMessages, send } = useChat();
   const { message } = useDataChannel('gift');
+  const { send: sendReaction } = useDataChannel('reaction');
+  const room = useRoomContext();
+  const { localParticipant } = useLocalParticipant();
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [historyMessages, setHistoryMessages] = useState<any[]>([]);
   const [visible, setVisible] = useState(true);
   const [draft, setDraft] = useState('');
+  const [showEmoji, setShowEmoji] = useState(false);
   const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const [likes, setLikes] = useState(0);
   const [followers, setFollowers] = useState(0);
@@ -61,12 +68,69 @@ export const OverlayChat = ({ mode = 'overlay' }: { mode?: 'overlay' | 'embedded
       }
   }, [message]);
 
+  useEffect(() => {
+    if (room.name) {
+        api.get(`/api/chat/${room.name}`).then(res => res.json()).then(data => {
+            if (Array.isArray(data)) {
+                setHistoryMessages(data.map(msg => {
+                    if (msg.type === 'gift') {
+                        try {
+                            const content = JSON.parse(msg.content);
+                            return {
+                                ...msg,
+                                type: 'gift',
+                                giftName: content.giftName,
+                                price: content.price,
+                                sender: msg.sender,
+                                timestamp: msg.timestamp
+                            };
+                        } catch (e) {
+                            return { ...msg, type: 'chat', message: msg.content, from: { name: msg.sender, identity: msg.sender } };
+                        }
+                    }
+                    if (msg.type === 'like') {
+                         return { ...msg, type: 'chat', message: msg.content, from: { name: msg.sender, identity: msg.sender } };
+                    }
+                    return {
+                        ...msg,
+                        timestamp: msg.timestamp,
+                        message: msg.content,
+                        from: { name: msg.sender, identity: msg.sender }
+                    };
+                }));
+            }
+        }).catch(console.error);
+    }
+  }, [room.name]);
+
   const handleLike = () => {
     setLikes(prev => prev + 1);
     window.dispatchEvent(new CustomEvent('USER_LIKE', { detail: { likes } }));
+    
+    if (sendReaction) {
+        const payload = new TextEncoder().encode(JSON.stringify({ type: 'like' }));
+        sendReaction(payload, { reliable: false });
+    }
+
+    if (send) {
+        send('sent a like ❤️');
+        // Persist like message
+        if (room.name) {
+            api.post('/api/chat/message', {
+                roomName: room.name,
+                sender: localParticipant.name || localParticipant.identity || 'Guest',
+                content: 'sent a like ❤️',
+                type: 'like'
+            }, false).catch(console.error);
+        }
+    }
+
+    if (room.name) {
+        api.post('/api/like', { recipientUsername: room.name }, true).catch(console.error);
+    }
   };
 
-  const allMessages = [...chatMessages, ...notifications].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  const allMessages = [...historyMessages, ...chatMessages, ...notifications].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
   useEffect(() => {
     const handleToggle = () => setVisible(prev => !prev);
@@ -92,7 +156,18 @@ export const OverlayChat = ({ mode = 'overlay' }: { mode?: 'overlay' | 'embedded
     if (!draft.trim() || !send) return;
     try {
         await send(draft);
+        
+        // Persist message to DB
+        if (room.name) {
+            api.post('/api/chat/message', {
+                roomName: room.name,
+                sender: localParticipant.name || localParticipant.identity || 'Guest',
+                content: draft
+            }, false).catch(console.error);
+        }
+
         setDraft('');
+        setShowEmoji(false);
     } catch (error) {
         console.error('Failed to send message', error);
     }
@@ -268,7 +343,6 @@ export const OverlayChat = ({ mode = 'overlay' }: { mode?: 'overlay' | 'embedded
             </div>
         )}
 
-        {visible && (
              <form onSubmit={handleSend} style={{ 
                  width: '100%', 
                  marginTop: isMobile ? '6px' : '8px', 
@@ -303,6 +377,85 @@ export const OverlayChat = ({ mode = 'overlay' }: { mode?: 'overlay' | 'embedded
                 >
                     ⚙️
                 </button>
+                <button 
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        window.dispatchEvent(new CustomEvent('TOGGLE_GIFT_MENU'));
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    style={{
+                        background: 'linear-gradient(135deg, #fcd34d, #f59e0b)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: isMobile ? '32px' : '36px',
+                        height: isMobile ? '32px' : '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#78350f',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                        fontSize: isMobile ? '14px' : '16px',
+                        flexShrink: 0
+                    }}
+                    title="Send Gift"
+                >
+                    🎁
+                </button>
+                
+                <div style={{ position: 'relative' }}>
+                    <button 
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowEmoji(!showEmoji);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        style={{
+                            background: 'rgba(255,255,255,0.15)',
+                            border: '1px solid rgba(255,255,255,0.25)',
+                            borderRadius: '50%',
+                            width: isMobile ? '32px' : '36px',
+                            height: isMobile ? '32px' : '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fbbf24',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                            fontSize: isMobile ? '14px' : '16px',
+                            flexShrink: 0
+                        }}
+                        title="Add Emoji"
+                    >
+                        😊
+                    </button>
+                    {showEmoji && (
+                        <div style={{
+                            position: 'absolute',
+                            bottom: '50px',
+                            left: '0',
+                            zIndex: 1000
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        >
+                            <EmojiPicker 
+                                onEmojiClick={(emojiData) => {
+                                    setDraft(prev => prev + emojiData.emoji);
+                                    // Don't close immediately to allow multiple emojis
+                                }}
+                                width={300}
+                                height={400}
+                                theme={'dark' as any}
+                            />
+                        </div>
+                    )}
+                </div>
+
                 <input 
                     type="text" 
                     value={draft}
@@ -377,7 +530,6 @@ export const OverlayChat = ({ mode = 'overlay' }: { mode?: 'overlay' | 'embedded
                     ➤
                 </button>
              </form>
-        )}
         <style jsx>{`
             @keyframes fadeIn {
                 from { opacity: 0; transform: translateY(10px); }

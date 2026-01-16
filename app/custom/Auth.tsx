@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useSiteConfig } from '../components/SiteConfigProvider';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 export const Auth = () => {
   const settings = useSiteConfig();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (searchParams.get('mode') === 'register') {
@@ -19,10 +22,18 @@ export const Auth = () => {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('user');
-  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    
+    // Basic Client-side Validation
+    if (password.length < 6) {
+        toast.error('Password must be at least 6 characters');
+        setIsLoading(false);
+        return;
+    }
+
     const endpoint = isLogin ? '/api/login' : '/api/register';
     try {
       const body: any = { username, password };
@@ -30,18 +41,24 @@ export const Auth = () => {
         body.role = role;
         body.email = email;
       }
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      
       const data = await res.json();
+      
       if (res.ok) {
         if (isLogin) {
           localStorage.setItem('token', data.token);
-          window.location.href = '/profile';
+          // Trigger user refresh in global state
+          window.dispatchEvent(new Event('REFRESH_USER'));
+          toast.success('Welcome back!');
+          router.push('/profile');
         } else {
-          setMessage('Registration successful! Logging you in...');
+          toast.success('Registration successful! Logging you in...');
           // Automatically log in after registration
           try {
              const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/login`, {
@@ -52,19 +69,25 @@ export const Auth = () => {
              const loginData = await loginRes.json();
              if (loginRes.ok) {
                  localStorage.setItem('token', loginData.token);
-                 window.location.href = '/profile';
+                 // Trigger user refresh in global state
+                 window.dispatchEvent(new Event('REFRESH_USER'));
+                 router.push('/profile');
              } else {
-                 setIsLogin(true); // Fallback to login form if auto-login fails
+                 setIsLogin(true);
+                 setIsLoading(false);
              }
           } catch(e) {
              setIsLogin(true);
+             setIsLoading(false);
           }
         }
       } else {
-        setMessage(data.message);
+        toast.error(data.message || 'Authentication failed');
+        setIsLoading(false);
       }
     } catch (error) {
-      setMessage('An error occurred. Please try again.');
+      toast.error('An error occurred. Please try again.');
+      setIsLoading(false);
     }
   };
 
@@ -179,12 +202,15 @@ export const Auth = () => {
             </div>
           )}
 
-          <button type="submit" className="lk-button" style={{ marginTop: '1rem', padding: '0.75rem' }}>
-            {isLogin ? 'Login' : 'Create Account'}
+          <button 
+            type="submit" 
+            className="lk-button" 
+            style={{ marginTop: '1rem', padding: '0.75rem', opacity: isLoading ? 0.7 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Please wait...' : (isLogin ? 'Login' : 'Create Account')}
           </button>
         </form>
-
-        {message && <p style={{ color: '#ef4444', textAlign: 'center', marginTop: '1rem' }}>{message}</p>}
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
           <button

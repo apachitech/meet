@@ -34,6 +34,7 @@ giftSchema.statics.update = function(id: string, updates: any) {
 };
 
 giftSchema.statics.delete = async function(id: string) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return false;
   const result = await this.findByIdAndDelete(id);
   return !!result;
 };

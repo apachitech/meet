@@ -62,6 +62,12 @@ body {
   flex-direction: column;
   color: var(--text-primary);
   background-color: var(--bg-dark);
+  background-image: var(--bg-image);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  min-height: 100vh;
 }
 
 a {

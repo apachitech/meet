@@ -6,8 +6,64 @@ import {
   AudioTrack,
   useLocalParticipant
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { Track, ConnectionQuality, Participant } from 'livekit-client';
 import React, { useMemo, useState, useEffect } from 'react';
+
+function ConnectionIndicator({ participant }: { participant: Participant }) {
+  const [quality, setQuality] = useState(ConnectionQuality.Unknown);
+
+  useEffect(() => {
+    const handleQuality = (q: ConnectionQuality) => setQuality(q);
+    setQuality(participant.connectionQuality);
+    participant.on('connectionQualityChanged', handleQuality);
+    return () => {
+      participant.off('connectionQualityChanged', handleQuality);
+    };
+  }, [participant]);
+
+  const getColor = () => {
+    switch(quality) {
+      case ConnectionQuality.Excellent: return '#22c55e'; // green-500
+      case ConnectionQuality.Good: return '#84cc16'; // lime-500
+      case ConnectionQuality.Poor: return '#eab308'; // yellow-500
+      case ConnectionQuality.Lost: return '#ef4444'; // red-500
+      default: return '#6b7280'; // gray-500
+    }
+  };
+
+  const getBars = () => {
+    const level = quality === ConnectionQuality.Excellent ? 4 :
+                  quality === ConnectionQuality.Good ? 3 :
+                  quality === ConnectionQuality.Poor ? 2 : 1;
+    
+    return (
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '12px' }}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} style={{
+            width: '3px',
+            height: `${i * 3}px`,
+            backgroundColor: i <= level ? getColor() : 'rgba(255,255,255,0.2)',
+            borderRadius: '1px'
+          }} />
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div title={`Connection: ${ConnectionQuality[quality]}`} style={{
+      padding: '4px 8px',
+      background: 'rgba(0,0,0,0.4)',
+      borderRadius: '12px',
+      backdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
+    }}>
+      {getBars()}
+    </div>
+  );
+}
 
 interface StreamingStageProps {
   roomName: string;
@@ -170,10 +226,21 @@ export function StreamingStage({ roomName, privateState, battleState }: Streamin
     }}>
        {/* Main Stage */}
        {mainTrack ? (
-         <VideoTrack 
-           trackRef={mainTrack} 
-           style={{ width: '100%', height: '100%', objectFit: broadcasterScreen ? 'contain' : 'cover', background: '#000' }} 
-         />
+         <>
+           <VideoTrack 
+             trackRef={mainTrack} 
+             style={{ width: '100%', height: '100%', objectFit: broadcasterScreen ? 'contain' : 'cover', background: '#000' }} 
+           />
+           {/* Connection Quality Indicator for Broadcaster */}
+           <div style={{
+             position: 'absolute',
+             top: '1rem',
+             right: '1rem',
+             zIndex: 40
+           }}>
+             <ConnectionIndicator participant={mainTrack.participant} />
+           </div>
+         </>
        ) : (
          <div style={{ 
            width: '100%', 

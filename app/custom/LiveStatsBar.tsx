@@ -77,32 +77,79 @@ export function LiveStatsBar({ roomName }: { roomName: string }) {
 
   return (
     <>
-      <button
-        onClick={() => setVisible(v => !v)}
-        style={{
-          position: 'absolute',
-          top: '1rem',
-          left: '1rem',
-          zIndex: 51,
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.25)',
-          background: 'rgba(0,0,0,0.4)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-        title="Show stats"
-      >
+      <div style={{
+        position: 'absolute',
+        top: '1rem',
+        left: '4rem', // shifted right from the avatar
+        zIndex: 51,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        alignItems: 'flex-start'
+      }}>
+        {visible && (
+          <div style={{
+             background: 'rgba(0,0,0,0.6)',
+             backdropFilter: 'blur(10px)',
+             borderRadius: '20px',
+             padding: '4px 12px',
+             border: '1px solid rgba(255,255,255,0.1)',
+             display: 'flex',
+             alignItems: 'center',
+             gap: '12px',
+             color: 'white',
+             fontSize: '0.85rem',
+             fontWeight: 600,
+             animation: 'fadeIn 0.2s ease-out'
+          }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Viewers">
+                <span>👁️</span> {views}
+             </div>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Likes">
+                <span style={{color: '#ef4444'}}>❤️</span> {likes}
+             </div>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Followers">
+                <span style={{color: '#3b82f6'}}>👥</span> {followers}
+             </div>
+             <div style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.2)' }} />
+          </div>
+        )}
+      </div>
+
+      {/* User Avatar Button */}
+      <div style={{
+        position: 'absolute',
+        top: '1rem',
+        left: '1rem',
+        zIndex: 52, // Higher than stats bar
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <button
+          onClick={() => setVisible(v => !v)}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            border: isFollowing ? '2px solid var(--accent-primary)' : '2px solid rgba(255,255,255,0.25)',
+            background: 'rgba(0,0,0,0.4)',
+            cursor: 'pointer',
+            padding: 0,
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+          }}
+          title={isFollowing ? 'Unfollow' : 'Follow'}
+        >
         <Image
-          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(roomName)}`}
+          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(roomName || 'default')}`}
           alt="Profile"
           fill
+          unoptimized
         />
       </button>
+      </div>
       <div
         style={{
           position: 'absolute',

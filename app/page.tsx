@@ -9,12 +9,43 @@ import { useUser } from './components/UserProvider';
 import { Footer } from './components/Footer';
 import { Skeleton } from './components/Skeleton';
 import { AdDisplay } from './components/AdDisplay';
+import { VideoCard } from './components/VideoCard';
+
+// Helper component for sections
+const SectionGrid = ({ title, models, loading, onSeeAll }: { title: string, models: any[], loading: boolean, onSeeAll?: () => void }) => (
+  <div className={styles.section}>
+    <div className={styles.sectionHeader}>
+      <h3 className={styles.sectionTitle}>
+        {/* Optional Icon could go here */}
+        {title}
+      </h3>
+      {onSeeAll && <span className={styles.seeAll} onClick={onSeeAll}>See All</span>}
+    </div>
+    
+    <div className={styles.grid}>
+      {loading ? (
+        Array.from({ length: 4 }).map((_, i) => (
+           <VideoCard key={i} model={{} as any} loading={true} />
+        ))
+      ) : models.length > 0 ? (
+        models.map((model, i) => (
+          <VideoCard key={`${model.id}-${i}`} model={model} />
+        ))
+      ) : (
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', padding: '1rem' }}>
+          No broadcasts available in this category.
+        </p>
+      )}
+    </div>
+  </div>
+);
 
 export default function Page() {
   const router = useRouter();
   const settings = useSiteConfig();
   const { user, loading: userLoading, logout } = useUser();
   const [models, setModels] = useState<{ id: string; username: string }[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [token, setToken] = useState<string | null>(null);
@@ -24,11 +55,18 @@ export default function Page() {
     setToken(t);
   }, []);
 
-  const fetchModels = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const data = await apiJson('/api/models');
-      if (Array.isArray(data)) {
-        setModels(data as { id: string; username: string }[]);
+      const [modelsData, sectionsData] = await Promise.all([
+        apiJson('/api/models'),
+        apiJson('/api/sections')
+      ]);
+      
+      if (Array.isArray(modelsData)) {
+        setModels(modelsData as { id: string; username: string }[]);
+      }
+      if (Array.isArray(sectionsData)) {
+        setSections(sectionsData);
       }
     } catch (error) {
       console.error(error);
@@ -38,11 +76,42 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    fetchModels();
-    // Poll for active models every 15 seconds
-    const interval = setInterval(fetchModels, 15000);
+    fetchData();
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
-  }, [fetchModels]);
+  }, [fetchData]);
+
+  const getFilteredModels = (section: any) => {
+    let filtered = [...models];
+    
+    // Filter by Type
+    switch (section.filterType) {
+        case 'recommended':
+            // Mock recommendation logic
+            filtered = filtered.filter((_, i) => i % 2 === 0);
+            break;
+        case 'new':
+            // Mock new logic (reverse order)
+            filtered = [...filtered].reverse();
+            break;
+        case 'tag':
+            if (section.filterValue) {
+                // Mock tag filtering - in real app check model.tags
+                // For demo, we'll just return random subset based on length of tag
+                const seed = section.filterValue.length;
+                filtered = filtered.filter((_, i) => (i + seed) % 3 === 0);
+            }
+            break;
+        case 'random':
+            filtered = filtered.sort(() => 0.5 - Math.random());
+            break;
+        case 'all':
+        default:
+            break;
+    }
+
+    return filtered.slice(0, 4); // Limit to 4 for grid
+  };
 
   const goLive = () => {
     if (user) {
@@ -51,6 +120,12 @@ export default function Page() {
         router.push('/login');
     }
   };
+
+  // Mock distribution of models into categories for demo (Fallback if no dynamic sections)
+  const recommendedModels = models.slice(0, 4);
+  const allIconModels = models; // All models
+  const saModels = models.filter((_, i) => i % 3 === 0); // Mock filter
+  const topRatedModels = models.filter((_, i) => i % 2 === 0); // Mock filter
 
   return (
     <div className={styles.main}>
@@ -62,7 +137,7 @@ export default function Page() {
           >
             ☰
           </button>
-          <div className={styles.logo}>
+          <div className={styles.logo} onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
             {settings?.siteName || 'Apacciflix'}
           </div>
         </div>
@@ -74,7 +149,14 @@ export default function Page() {
             </div>
           ) : user ? (
             <>
-              <span className={styles.username}>
+              <button 
+                 className={styles.primaryBtn} 
+                 style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', marginRight: '0.5rem' }}
+                 onClick={goLive}
+              >
+                Go Live
+              </button>
+              <span className={styles.username} style={{ marginRight: '0.5rem' }}>
                 {user.tokenBalance} tkns
               </span>
               <span className={styles.username} onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }}>
@@ -106,10 +188,6 @@ export default function Page() {
         </div>
       </nav>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
-        <AdDisplay location="home-top" style={{ width: '100%', height: '150px', marginBottom: '2rem' }} />
-      </div>
-
       <div className={styles.container}>
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
@@ -121,14 +199,24 @@ export default function Page() {
 
         <aside className={`${styles.sidebar} ${isMobileMenuOpen ? styles.open : ''}`}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3>Categories</h3>
-            <button 
-              className={styles.closeBtn}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              ✕
-            </button>
+             {/* Only show close btn on mobile */}
+            {isMobileMenuOpen && (
+                <button 
+                className={styles.closeBtn}
+                style={{ display: 'block', marginLeft: 'auto' }}
+                onClick={() => setIsMobileMenuOpen(false)}
+                >
+                ✕
+                </button>
+            )}
           </div>
+
+          <div className={styles.sidebarPromo} onClick={() => router.push('/login?mode=register')}>
+            <h4>50 Tokens</h4>
+            <p>Free for new accounts!</p>
+          </div>
+
+          <h3 style={{ marginTop: '1rem' }}>Categories</h3>
           <ul className={styles.sidebarMenu}>
             {settings?.categories?.map((cat) => (
                <li 
@@ -141,10 +229,8 @@ export default function Page() {
             )) || (
               <>
                 <li className={`${styles.sidebarItem} ${styles.active}`}>Featured</li>
-                <li className={styles.sidebarItem}>Girls</li>
-                <li className={styles.sidebarItem}>Couples</li>
-                <li className={styles.sidebarItem}>Trans</li>
-                <li className={styles.sidebarItem}>Men</li>
+                <li className={styles.sidebarItem}>Female</li>
+                <li className={styles.sidebarItem}>Male</li>
                 <li className={styles.sidebarItem}>VR</li>
               </>
             )}
@@ -165,53 +251,79 @@ export default function Page() {
         </aside>
 
         <main className={styles.content}>
-          <div className={styles.hero}>
-            <h1 className={styles.title}>
-              {settings?.homeTitle || <>Welcome to <span className={styles.highlight}>{settings?.siteName || 'Apacciflix'}</span></>}
-            </h1>
-            <p className={styles.description}>
-              {settings?.homeSubtitle || 'Interactive Live Streaming Platform. Connect, Share, and Earn.'}
-            </p>
-            <div className={styles.cta}>
-              <button className={styles.primaryBtn} onClick={goLive}>
-                Start Broadcasting
-              </button>
-              <button className={styles.secondaryBtn} onClick={() => router.push('/search')}>
-                Find Creators
-              </button>
-            </div>
-          </div>
+           {/* Top Ad */}
+           <div style={{ maxWidth: '100%', marginBottom: '2rem' }}>
+            <AdDisplay location="home-top" style={{ width: '100%', height: '150px' }} />
+           </div>
 
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', marginTop: '2rem' }}>
-            {settings?.gridTitle || 'Live Cams'}
-          </h2>
+           {/* Hero Section */}
+           {settings?.homeTitle && (
+             <div className={styles.hero}>
+               <div>
+                 <h1>{settings.homeTitle}</h1>
+                 <p>{settings.homeSubtitle}</p>
+               </div>
+             </div>
+           )}
 
-          <div className={styles.grid}>
-            {loadingModels ? (
-              // Skeleton Loading for Grid
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className={styles.card} style={{ pointerEvents: 'none' }}>
-                  <Skeleton width="100%" height="180px" borderRadius="12px" style={{ marginBottom: '1rem' }} />
-                  <Skeleton width="60%" height="24px" borderRadius="4px" style={{ marginBottom: '0.5rem' }} />
-                  <Skeleton width="40%" height="16px" borderRadius="4px" />
-                </div>
-              ))
-            ) : models.length > 0 ? (
-              models.map((model) => (
-                <div key={model.id} className={styles.card} onClick={() => router.push(`/rooms/${model.username}`)}>
-                  <div className={styles.thumbnailPlaceholder}>
-                    <div className={styles.liveBadge}>LIVE</div>
-                  </div>
-                  <h3>{model.username}</h3>
-                  <p>Live now!</p>
-                </div>
-              ))
-            ) : (
-              <p style={{ textAlign: 'center', width: '100%', color: '#888' }}>
-                No models are live right now. Be the first!
-              </p>
-            )}
-          </div>
+           {/* Dynamic Sections */}
+           {sections.length > 0 ? (
+             sections.map((section) => (
+               <SectionGrid 
+                 key={section._id}
+                 title={section.title} 
+                 models={getFilteredModels(section)} 
+                 loading={loadingModels}
+                 onSeeAll={() => console.log(`See all ${section.title}`)}
+               />
+             ))
+           ) : (
+             <>
+                {/* Default Sections (Fallback) */}
+                <SectionGrid 
+                    title="Today's Recommendations For You" 
+                    models={recommendedModels} 
+                    loading={loadingModels}
+                    onSeeAll={() => console.log('See all recommendations')}
+                />
+
+                <SectionGrid 
+                    title="All Icons" 
+                    models={allIconModels} 
+                    loading={loadingModels}
+                    onSeeAll={() => console.log('See all icons')}
+                />
+
+                <SectionGrid 
+                    title="South African Broadcasters" 
+                    models={saModels} 
+                    loading={loadingModels}
+                    onSeeAll={() => console.log('See all SA')}
+                />
+
+                <SectionGrid 
+                    title="Top Rated Live Channels" 
+                    models={topRatedModels} 
+                    loading={loadingModels}
+                    onSeeAll={() => console.log('See all top rated')}
+                />
+
+                <SectionGrid 
+                    title="Couples Live" 
+                    models={recommendedModels} 
+                    loading={loadingModels}
+                    onSeeAll={() => console.log('See all couples')}
+                />
+
+                <SectionGrid 
+                    title="VR Cams" 
+                    models={models.slice(0, 2)} 
+                    loading={loadingModels}
+                    onSeeAll={() => console.log('See all VR')}
+                />
+             </>
+           )}
+
         </main>
       </div>
       <Footer />

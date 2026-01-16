@@ -1,4 +1,5 @@
 import express from 'express';
+console.log('Starting backend...');
 import dotenv from 'dotenv';
 dotenv.config();
 import bodyParser from 'body-parser';
@@ -13,12 +14,14 @@ import { getUserByUsername, incrementViewCount, followUser, unfollowUser, isFoll
 import { User } from './models/User.js';
 import { startPrivateShow, stopPrivateShow, getPrivateStatus, initPrivateShowMonitor } from './private-shows.js';
 import { getBattleStatus, startBattle, stopBattle } from './battles.js';
+import { saveMessage, getMessages } from './chat.js';
 import { createOrder, captureOrder } from './payment.js';
 import { 
   getSettings, updateSettings, getUsers, updateUserRole, adminCreditUser, adminSendGift,
   adminGetGifts, adminAddGift, adminUpdateGift, adminDeleteGift,
   adminGetPromotions, adminAddPromotion, adminUpdatePromotion, adminDeletePromotion,
-  adminGetAds, adminAddAd, adminUpdateAd, adminDeleteAd, getActiveAds
+  adminGetAds, adminAddAd, adminUpdateAd, adminDeleteAd, getActiveAds,
+  adminGetSections, adminAddSection, adminUpdateSection, adminDeleteSection, getActiveSections
 } from './admin.js';
 import { authenticateAdmin } from './middleware.js';
 
@@ -35,6 +38,8 @@ app.use(cors({
     // Allow requests from localhost and Vercel deployments
     const allowedOrigins = [
       'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
       'http://localhost:5500',
       'http://127.0.0.1:5500',
       /\.vercel\.app$/,  // Allow any Vercel deployment
@@ -144,6 +149,10 @@ app.post('/api/battle/start', authenticateToken, startBattle);
 app.post('/api/battle/stop', authenticateToken, stopBattle);
 app.get('/api/battle/status', getBattleStatus);
 
+// Chat Routes
+app.post('/api/chat/message', saveMessage);
+app.get('/api/chat/:roomName', getMessages);
+
 // Payment Routes
 app.post('/api/payment/create-order', authenticateToken, createOrder);
 app.post('/api/payment/capture-order', authenticateToken, captureOrder);
@@ -174,8 +183,17 @@ app.post('/api/admin/ads', authenticateAdmin, adminAddAd);
 app.put('/api/admin/ads/:id', authenticateAdmin, adminUpdateAd);
 app.delete('/api/admin/ads/:id', authenticateAdmin, adminDeleteAd);
 
+// Admin Sections
+app.get('/api/admin/sections', authenticateAdmin, adminGetSections);
+app.post('/api/admin/sections', authenticateAdmin, adminAddSection);
+app.put('/api/admin/sections/:id', authenticateAdmin, adminUpdateSection);
+app.delete('/api/admin/sections/:id', authenticateAdmin, adminDeleteSection);
+
 // Public Ads
 app.get('/api/ads', getActiveAds);
+
+// Public Sections
+app.get('/api/sections', getActiveSections);
 
 app.get('/', (req: any, res: any) => {
   res.send('Backend server is running!');
