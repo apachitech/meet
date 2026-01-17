@@ -50,8 +50,18 @@ function ConnectionIndicator({ participant }: { participant: Participant }) {
     );
   };
 
+  const getConnectionText = () => {
+    switch(quality) {
+      case ConnectionQuality.Excellent: return 'Excellent';
+      case ConnectionQuality.Good: return 'Good';
+      case ConnectionQuality.Poor: return 'Poor';
+      case ConnectionQuality.Lost: return 'Lost';
+      default: return 'Unknown';
+    }
+  };
+
   return (
-    <div title={`Connection: ${ConnectionQuality[quality]}`} style={{
+    <div title={`Connection: ${getConnectionText()}`} style={{
       padding: '4px 8px',
       background: 'rgba(0,0,0,0.4)',
       borderRadius: '12px',
