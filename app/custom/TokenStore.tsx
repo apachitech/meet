@@ -71,6 +71,8 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
     // If a package is selected, show PayPal buttons in a modal or overlay on top of the selection
     // Or just render buttons inside the package card? Rendering inside every card is heavy.
     // Let's render buttons when a package is clicked.
+    
+    const isConfigured = !!process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID && process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID !== 'test';
 
     return (
         <PayPalScriptProvider options={{ 

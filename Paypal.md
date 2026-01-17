@@ -23,7 +23,7 @@ This guide explains how to obtain your PayPal API credentials and configure them
 
 ---
 
-## Step 2: Configure the Project
+## Step 2: Configure the Project (Local Development)
 
 You need to add these credentials to two environment files in your project.
 
@@ -36,7 +36,9 @@ Open the file `backend/.env` and find the PayPal section. Paste your credentials
 # Use Sandbox credentials for testing, Live for real money
 PAYPAL_CLIENT_ID=your_client_id_here
 PAYPAL_CLIENT_SECRET=your_secret_here
+PAYPAL_MODE=sandbox
 ```
+*(Change `PAYPAL_MODE` to `live` when using real money)*
 
 ### 2. Frontend Configuration (`.env.local`)
 
@@ -49,18 +51,49 @@ NEXT_PUBLIC_PAYPAL_CLIENT_ID=your_client_id_here
 
 ---
 
-## Step 3: Switch to Production (Live)
+## Step 3: Update Credentials in Production (Render & Vercel)
+
+When deploying your app or switching to "Live" mode, you must update the Environment Variables on your hosting platforms.
+
+### 1. Update Frontend (Vercel)
+The Frontend needs the **Client ID** to show the buttons.
+
+1.  Go to your **Vercel Dashboard**.
+2.  Select your project (`livekit-meet`).
+3.  Click on **Settings** (top menu) -> **Environment Variables** (left menu).
+4.  Find `NEXT_PUBLIC_PAYPAL_CLIENT_ID`.
+    *   Click the **Edit** icon (pencil).
+    *   Paste your **Live Client ID**.
+    *   Click **Save**.
+5.  **Important**: You must **Redeploy** for changes to take effect.
+    *   Go to **Deployments**.
+    *   Click the three dots `...` next to the latest deployment -> **Redeploy**.
+
+### 2. Update Backend (Render)
+The Backend needs the **Client ID** and **Secret** to process payments.
+
+1.  Go to your **Render Dashboard**.
+2.  Select your backend service (e.g., `meet-backend`).
+3.  Click on **Environment** (left menu).
+4.  Update the following variables:
+    *   `PAYPAL_CLIENT_ID`: Paste your **Live Client ID**.
+    *   `PAYPAL_CLIENT_SECRET`: Paste your **Live Secret**.
+    *   `PAYPAL_MODE`: Set to `live`.
+5.  Click **Save Changes**.
+6.  Render will automatically restart your server with the new credentials.
+
+---
+
+## Step 4: Switch to Production (Live) Checklist
 
 When you are ready to accept real money:
 
-1.  Go back to the PayPal Developer Dashboard.
-2.  Switch the toggle at the top from **Sandbox** to **Live**.
-3.  Create a **Live App** (or use the default one).
-4.  Copy the **Live Client ID** and **Live Secret**.
-5.  Update both `backend/.env` and `.env.local` with these new "Live" credentials.
-6.  **Important**: In `backend/.env`, ensure `NODE_ENV=production` is set (or simply ensure the server is running in production mode) so the backend uses the Live PayPal environment.
+1.  [ ] **PayPal Dashboard**: Switch toggle to **Live**. Create a Live App.
+2.  [ ] **Vercel**: Update `NEXT_PUBLIC_PAYPAL_CLIENT_ID` with Live ID. **Redeploy**.
+3.  [ ] **Render**: Update `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` with Live credentials. Set `PAYPAL_MODE` to `live`. **Save**.
+4.  [ ] **Test**: Try to buy tokens. The PayPal popup should now ask for a real credit card/account, not a sandbox test account.
 
 ## Troubleshooting
 
-*   **Payment Failed?** Check the backend console logs. If you see "Authentication failed", double-check that you copied the Secret correctly and that it matches the Client ID (Sandbox ID with Sandbox Secret).
-*   **Buttons not showing?** Ensure `NEXT_PUBLIC_PAYPAL_CLIENT_ID` is set correctly in `.env.local` and that you have restarted the frontend server after changing `.env.local`.
+*   **Payment Failed?** Check the Render logs. If you see "Authentication failed", double-check that you copied the Secret correctly and that it matches the Client ID (Sandbox ID with Sandbox Secret).
+*   **Buttons not showing?** Ensure `NEXT_PUBLIC_PAYPAL_CLIENT_ID` is set correctly in Vercel and that you have **Redeployed**.
