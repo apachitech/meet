@@ -77,6 +77,8 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
     // Check if real PayPal credentials are set
     const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
     const isConfigured = !!clientId && clientId !== 'test' && !clientId.includes('your_paypal_client_id');
+    const [paypalError, setPaypalError] = useState<boolean>(false);
+    const [forceMock, setForceMock] = useState<boolean>(false);
 
     const handleMockPayment = async () => {
         if (!selectedPackage) return;
@@ -245,38 +247,69 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                                 Pay for {selectedPackage.tokens} Tokens
                             </h3>
                             <div style={{ maxWidth: '300px', margin: '0 auto' }}>
-                                {isConfigured ? (
-                                    <PayPalButtons 
-                                        style={{ layout: "vertical", shape: "rect" }}
-                                        createOrder={createOrder}
-                                        onApprove={handleApprove}
-                                        onCancel={() => setLoading(null)}
-                                        onError={(err) => {
-                                            console.error("PayPal Error:", err);
-                                            setLoading(null);
-                                            alert("Payment could not be processed. Please try again.");
-                                        }}
-                                        forceReRender={[selectedPackage.id]}
-                                    />
+                                {isConfigured && !paypalError && !forceMock ? (
+                                    <>
+                                        <PayPalButtons 
+                                            style={{ layout: "vertical", shape: "rect" }}
+                                            createOrder={createOrder}
+                                            onApprove={handleApprove}
+                                            onCancel={() => setLoading(null)}
+                                            onError={(err) => {
+                                                console.error("PayPal Error:", err);
+                                                setLoading(null);
+                                                setPaypalError(true);
+                                                alert("PayPal failed to load. Switching to alternative payment.");
+                                            }}
+                                            forceReRender={[selectedPackage.id]}
+                                        />
+                                        <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                                            <button 
+                                                onClick={() => setForceMock(true)}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: 'var(--text-secondary)',
+                                                    textDecoration: 'underline',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.8rem'
+                                                }}
+                                            >
+                                                Having trouble? Use Mock Payment
+                                            </button>
+                                        </div>
+                                    </>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        <div style={{ 
-                                            padding: '1rem', 
-                                            background: 'rgba(255, 165, 0, 0.1)', 
-                                            border: '1px solid orange',
-                                            borderRadius: '8px',
-                                            color: 'orange',
-                                            textAlign: 'center',
-                                            fontSize: '0.9rem'
-                                        }}>
-                                            <strong>Dev Mode / Setup Required</strong>
-                                            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
-                                                <strong>Running Locally?</strong><br/>
-                                                Update <code>.env.local</code> with your Real Client ID to see actual PayPal buttons.<br/>
-                                                <br/>
-                                                <em>(Currently using Mock Payment for testing)</em>
+                                        {!isConfigured && (
+                                            <div style={{ 
+                                                padding: '1rem', 
+                                                background: 'rgba(255, 165, 0, 0.1)', 
+                                                border: '1px solid orange',
+                                                borderRadius: '8px',
+                                                color: 'orange',
+                                                textAlign: 'center',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                <strong>Dev Mode / Setup Required</strong>
+                                                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
+                                                    <strong>Running Locally?</strong><br/>
+                                                    Update <code>.env.local</code> with your Real Client ID to see actual PayPal buttons.<br/>
+                                                    <br/>
+                                                    <em>(Currently using Mock Payment for testing)</em>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
+                                        {paypalError && (
+                                            <div style={{ 
+                                                padding: '0.5rem', 
+                                                color: '#ef4444', 
+                                                textAlign: 'center', 
+                                                fontSize: '0.9rem',
+                                                marginBottom: '0.5rem'
+                                            }}>
+                                                PayPal unavailable. Please use the Mock Payment below.
+                                            </div>
+                                        )}
                                         <button 
                                             onClick={handleMockPayment}
                                             style={{
