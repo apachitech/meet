@@ -61,10 +61,16 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
             });
             
             const order = await res.json();
+            
+            if (!res.ok || !order.id) {
+                throw new Error(order.message || 'Failed to create order');
+            }
+            
             return order.id;
-        } catch (err) {
-            console.error(err);
-            return '';
+        } catch (err: any) {
+            console.error("Create Order Error:", err);
+            // Throw error to stop the PayPal spinner
+            throw new Error(`Could not initiate payment: ${err.message}`);
         }
     };
 
@@ -82,7 +88,7 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
             const createRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/create-order`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ packageId: selectedPackage.id, amount: selectedPackage.price })
+                body: JSON.stringify({ packageId: selectedPackage.id, amount: selectedPackage.price, isMock: true })
             });
             const orderData = await createRes.json();
             

@@ -16,7 +16,13 @@ const client = new paypal.core.PayPalHttpClient(
 );
 
 export const createOrder = async (req: any, res: any) => {
-  const { packageId, amount } = req.body;
+  const { packageId, amount, isMock } = req.body;
+
+  if (isMock) {
+      console.log('Forcing Mock PayPal Order');
+      const orderId = `MOCK-ORDER-${Date.now()}`;
+      return res.json({ id: orderId, status: 'CREATED' });
+  }
 
   const request = new paypal.orders.OrdersCreateRequest();
   request.prefer("return=representation");
