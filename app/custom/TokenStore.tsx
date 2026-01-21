@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => void, onPurchaseComplete: () => void }) => {
     const [loading, setLoading] = useState<string | null>(null);
     const [packages, setPackages] = useState<any[]>([]);
-    const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
     const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
     
     useEffect(() => {
@@ -14,71 +12,9 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
             .then(res => res.json())
             .then(data => {
                 if (data.tokenPackages) setPackages(data.tokenPackages);
-                if (data.paymentMethods) setPaymentMethods(data.paymentMethods);
             })
             .catch(console.error);
     }, []);
-
-    const handleApprove = async (data: any, actions: any) => {
-        if (!selectedPackage) return;
-        setLoading(selectedPackage.id);
-        
-        try {
-            const token = localStorage.getItem('token');
-            // Capture the order on backend
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/capture-order`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ orderId: data.orderID, packageId: selectedPackage.id })
-            });
-            
-            const result = await res.json();
-            
-            if (res.ok) {
-                alert(`Successfully purchased ${selectedPackage.tokens} tokens!`);
-                onPurchaseComplete();
-                onClose();
-            } else {
-                alert(`Payment failed: ${result.message}`);
-            }
-        } catch (error) {
-            console.error(error);
-            alert('Payment processing failed');
-        } finally {
-            setLoading(null);
-        }
-    };
-
-    const createOrder = async (data: any, actions: any) => {
-        if (!selectedPackage) return '';
-        const token = localStorage.getItem('token');
-        
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/create-order`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ packageId: selectedPackage.id, amount: selectedPackage.price })
-            });
-            
-            const order = await res.json();
-            
-            if (!res.ok || !order.id) {
-                throw new Error(order.message || 'Failed to create order');
-            }
-            
-            return order.id;
-        } catch (err: any) {
-            console.error("Create Order Error:", err);
-            // Throw error to stop the PayPal spinner
-            throw new Error(`Could not initiate payment: ${err.message}`);
-        }
-    };
-
-    // Check if real PayPal credentials are set
-    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
-    const isConfigured = !!clientId && clientId !== 'test' && !clientId.includes('your_paypal_client_id');
-    const [paypalError, setPaypalError] = useState<boolean>(false);
-    const [forceMock, setForceMock] = useState<boolean>(false);
 
     const handleMockPayment = async () => {
         if (!selectedPackage) return;
@@ -97,12 +33,27 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
             if (!orderData.id) throw new Error("Failed to create mock order");
 
             // 2. Capture Mock Order
-            await handleApprove({ orderID: orderData.id }, null);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/capture-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ orderId: orderData.id, packageId: selectedPackage.id })
+            });
+            
+            const result = await res.json();
+            
+            if (res.ok) {
+                alert(`Successfully purchased ${selectedPackage.tokens} tokens!`);
+                onPurchaseComplete();
+                onClose();
+            } else {
+                alert(`Payment failed: ${result.message}`);
+            }
             
         } catch (error) {
             console.error(error);
+            alert("Payment failed");
+        } finally {
             setLoading(null);
-            alert("Mock payment failed");
         }
     };
 
@@ -247,103 +198,24 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                                 Pay for {selectedPackage.tokens} Tokens
                             </h3>
                             <div style={{ maxWidth: '300px', margin: '0 auto' }}>
-                                {isConfigured && !paypalError && !forceMock ? (
-                                    <>
-                                        <PayPalButtons 
-                                            style={{ layout: "vertical", shape: "rect" }}
-                                            createOrder={createOrder}
-                                            onApprove={handleApprove}
-                                            onCancel={() => setLoading(null)}
-                                            onError={(err) => {
-                                                console.error("PayPal Error:", err);
-                                                setLoading(null);
-                                                setPaypalError(true);
-                                                alert("PayPal failed to load. Switching to alternative payment.");
-                                            }}
-                                            forceReRender={[selectedPackage.id]}
-                                        />
-                                        <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                                            <button 
-                                                onClick={() => setForceMock(true)}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: 'var(--text-secondary)',
-                                                    textDecoration: 'underline',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.8rem'
-                                                }}
-                                            >
-                                                Having trouble? Use Mock Payment
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        {!isConfigured && (
-                                            <div style={{ 
-                                                padding: '1rem', 
-                                                background: 'rgba(255, 165, 0, 0.1)', 
-                                                border: '1px solid orange',
-                                                borderRadius: '8px',
-                                                color: 'orange',
-                                                textAlign: 'center',
-                                                fontSize: '0.9rem'
-                                            }}>
-                                                <strong>Dev Mode / Setup Required</strong>
-                                                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
-                                                    <strong>Running Locally?</strong><br/>
-                                                    Update <code>.env.local</code> with your Real Client ID to see actual PayPal buttons.<br/>
-                                                    <br/>
-                                                    <em>(Currently using Mock Payment for testing)</em>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {paypalError && (
-                                            <div style={{ 
-                                                padding: '0.5rem', 
-                                                color: '#ef4444', 
-                                                textAlign: 'center', 
-                                                fontSize: '0.9rem',
-                                                marginBottom: '0.5rem'
-                                            }}>
-                                                PayPal unavailable. Please use the Mock Payment below.
-                                            </div>
-                                        )}
-                                        <button 
-                                            onClick={handleMockPayment}
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px',
-                                                background: '#2563eb',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '4px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer',
-                                                fontSize: '1rem'
-                                            }}
-                                        >
-                                            💳 Mock Card Payment
-                                        </button>
-                                        <button 
-                                            onClick={handleMockPayment}
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px',
-                                                background: '#fbbf24',
-                                                color: 'black',
-                                                border: 'none',
-                                                borderRadius: '4px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer',
-                                                fontSize: '1rem'
-                                            }}
-                                        >
-                                            🅿️ Mock PayPal
-                                        </button>
-                                    </div>
-                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <button 
+                                        onClick={handleMockPayment}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            background: '#2563eb',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        💳 Credit Card (Simulated)
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -351,10 +223,8 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                     <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         <div style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Accepted Methods:</div>
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '1rem' }}>
-                            <span style={{ padding: '4px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>PayPal</span>
                             <span style={{ padding: '4px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>Credit Card</span>
                         </div>
-                        Secured by PayPal. By purchasing, you agree to our Terms of Service.
                     </div>
                 </div>
             </div>

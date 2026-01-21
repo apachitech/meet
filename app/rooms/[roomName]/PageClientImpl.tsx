@@ -38,7 +38,6 @@ import { OverlayChat } from '@/app/custom/OverlayChat';
 import { CustomControls } from '@/app/custom/CustomControls';
 import { SpectatorRow } from '@/app/custom/SpectatorRow';
 import { TokenStore } from '@/app/custom/TokenStore';
-import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { api, API_BASE } from '../../../lib/api';
 import { usePrivateStatus } from '../../../lib/usePrivateStatus';
 import { LiveStatsBar } from '@/app/custom/LiveStatsBar';
@@ -669,6 +668,7 @@ function VideoConferenceComponent(props: {
         <GiftOverlay roomName={props.roomName} username={props.userChoices.username} />
       </RoomContext.Provider>
     </div>
+    </>
   );
 }
 
@@ -802,16 +802,8 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
     }
   };
 
-  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
-  const isValidClientId = paypalClientId && !paypalClientId.includes('your_paypal_client_id') && paypalClientId !== 'test';
-
   return (
-    <PayPalScriptProvider options={{ 
-        clientId: isValidClientId ? paypalClientId : "test",
-        currency: "USD",
-        intent: "capture",
-        components: "buttons,googlepay"
-    }}>
+    <PayPalScriptProvider options={{ clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "test" }}>
       {showStore && <TokenStore onClose={() => setShowStore(false)} onPurchaseComplete={refreshUser} />}
       <button 
          onClick={() => setIsOpen(!isOpen)}

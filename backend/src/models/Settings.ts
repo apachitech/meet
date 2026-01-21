@@ -67,7 +67,7 @@ const settingsSchema = new mongoose.Schema({
   paymentMethods: { 
       type: [paymentMethodSchema], 
       default: [
-        { id: 'paypal', name: 'PayPal', enabled: true },
+        { id: 'card', name: 'Credit Card (Simulated)', enabled: true },
         { id: 'stripe', name: 'Stripe', enabled: false },
         { id: 'crypto', name: 'Crypto', enabled: false }
       ] 
