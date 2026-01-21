@@ -75,13 +75,24 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
     const isConfigured = !!process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID && process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID !== 'test';
 
     return (
-        <PayPalScriptProvider options={{ 
-            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "test",
-            currency: "USD",
-            intent: "capture",
-            components: "buttons,googlepay",
-            "enable-funding": "googlepay"
-        }}>
+        <>
+            {loading && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    zIndex: 200,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '1.2rem',
+                    fontWeight: 'bold',
+                    backdropFilter: 'blur(2px)'
+                }}>
+                    Processing Payment...
+                </div>
+            )}
             <div style={{
                 position: 'fixed',
                 top: 0, left: 0, right: 0, bottom: 0,
