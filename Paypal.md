@@ -99,11 +99,37 @@ When you are ready to accept real money:
 
 The application is configured to support Google Pay automatically alongside PayPal and Credit Cards.
 
-1.  **Enable in Dashboard**: Ensure Google Pay is enabled in your PayPal Developer Dashboard for your App (if applicable).
-2.  **Browser Support**: The "Google Pay" button will automatically appear in the payment popup or list **if**:
-    *   The user is on a supported device/browser (Chrome, Android).
-    *   The user has a Google Pay wallet configured.
-3.  **Troubleshooting**: If the button doesn't appear, check if you are logged into a Google account with payment methods attached in Chrome.
+*   **Requirement**: Google Pay only appears if the user has a supported browser (Chrome/Android) and a saved payment method in their Google Account.
+*   **HTTPS**: Google Pay requires the site to be served over HTTPS (Vercel provides this automatically).
+*   **Enable in Dashboard**: Ensure Google Pay is enabled in your PayPal Developer Dashboard for your App (if applicable).
+
+---
+
+## Step 6: Verification Checklist
+
+Follow these steps to ensure **PayPal**, **Card**, and **Google Pay** buttons work smoothly:
+
+### 1. Check Button Visibility
+*   **PayPal Button (Yellow/Blue)**: Should always be visible.
+*   **Debit/Credit Card Button (Black)**: 
+    *   Should be visible below the PayPal button.
+    *   *Note*: If missing, enable "PayPal Account Optional" (Guest Checkout) in your PayPal Account Settings -> Website Payments -> Website Preferences.
+*   **Google Pay Button**:
+    *   Only visible on Chrome/Android with a logged-in Google account.
+    *   If testing locally (`localhost`), it may not appear unless you use a tunneling service (like ngrok) to get HTTPS.
+
+### 2. Test a Purchase (Smooth Flow)
+1.  **Select a Package**: Click on a token package (e.g., 100 Tokens).
+2.  **Click Payment Button**:
+    *   **PayPal**: Opens a popup. Login with a Sandbox Personal Account (if in Sandbox mode) or Real Account (if Live).
+    *   **Card**: Opens a card form directly inline or in a popup.
+    *   **Google Pay**: Opens the native Google Pay sheet.
+3.  **Complete Payment**:
+    *   After payment, the popup should close automatically.
+    *   You should see a "Processing Payment..." overlay.
+    *   **Success**: An alert "Successfully purchased X tokens!" will appear, and your token balance will update immediately.
+
+---
 
 ## Troubleshooting
 
