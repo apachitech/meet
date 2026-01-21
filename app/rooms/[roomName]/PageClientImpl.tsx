@@ -810,7 +810,6 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
         components: "buttons,googlepay",
         "enable-funding": "googlepay"
     }}>
-    <>
       {showStore && <TokenStore onClose={() => setShowStore(false)} onPurchaseComplete={refreshUser} />}
       <button 
          onClick={() => setIsOpen(!isOpen)}
@@ -1019,7 +1018,6 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
           )}
         </div>
       </div>
-    </>
     </PayPalScriptProvider>
   );
 }
