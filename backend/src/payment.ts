@@ -37,7 +37,8 @@ export const createOrder = async (req: any, res: any) => {
   } catch (err: any) {
     console.error('PayPal Create Order Error:', err);
     // Fallback for demo/dev if credentials are invalid
-    if (process.env.NODE_ENV !== 'production' && (!process.env.PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID === 'sandbox-client-id')) {
+    const clientId = process.env.PAYPAL_CLIENT_ID || '';
+    if (process.env.NODE_ENV !== 'production' && (!clientId || clientId === 'sandbox-client-id' || clientId.includes('your_paypal_client_id'))) {
         console.warn('Using Mock PayPal Order due to missing credentials');
         const orderId = `MOCK-ORDER-${Date.now()}`;
         return res.json({ id: orderId, status: 'CREATED' });

@@ -802,13 +802,15 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
     }
   };
 
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+  const isValidClientId = paypalClientId && !paypalClientId.includes('your_paypal_client_id') && paypalClientId !== 'test';
+
   return (
     <PayPalScriptProvider options={{ 
-        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "test",
+        clientId: isValidClientId ? paypalClientId : "test",
         currency: "USD",
         intent: "capture",
-        components: "buttons,googlepay",
-        "enable-funding": "googlepay"
+        components: "buttons,googlepay"
     }}>
       {showStore && <TokenStore onClose={() => setShowStore(false)} onPurchaseComplete={refreshUser} />}
       <button 

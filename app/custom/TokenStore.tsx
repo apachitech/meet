@@ -229,20 +229,56 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                                         forceReRender={[selectedPackage.id]}
                                     />
                                 ) : (
-                                    <div style={{ 
-                                        padding: '1rem', 
-                                        background: 'rgba(255, 165, 0, 0.1)', 
-                                        border: '1px solid orange',
-                                        borderRadius: '8px',
-                                        color: 'orange',
-                                        textAlign: 'center',
-                                        fontSize: '0.9rem'
-                                    }}>
-                                        <strong>Setup Required</strong>
-                                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
-                                            PayPal Client ID not configured.<br/>
-                                            See PayPal.md for instructions.
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ 
+                                            padding: '1rem', 
+                                            background: 'rgba(255, 165, 0, 0.1)', 
+                                            border: '1px solid orange',
+                                            borderRadius: '8px',
+                                            color: 'orange',
+                                            textAlign: 'center',
+                                            fontSize: '0.9rem'
+                                        }}>
+                                            <strong>Dev Mode / Setup Required</strong>
+                                            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
+                                                <strong>Running Locally?</strong><br/>
+                                                Update <code>.env.local</code> with your Real Client ID to see actual PayPal buttons.<br/>
+                                                <br/>
+                                                <em>(Currently using Mock Payment for testing)</em>
+                                            </div>
                                         </div>
+                                        <button 
+                                            onClick={handleMockPayment}
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px',
+                                                background: '#2563eb',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer',
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            💳 Mock Card Payment
+                                        </button>
+                                        <button 
+                                            onClick={handleMockPayment}
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px',
+                                                background: '#fbbf24',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer',
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            🅿️ Mock PayPal
+                                        </button>
                                     </div>
                                 )}
                             </div>
