@@ -93,6 +93,18 @@ When you are ready to accept real money:
 3.  [ ] **Render**: Update `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` with Live credentials. Set `PAYPAL_MODE` to `live`. **Save**.
 4.  [ ] **Test**: Try to buy tokens. The PayPal popup should now ask for a real credit card/account, not a sandbox test account.
 
+---
+
+## Step 5: Google Pay Support
+
+The application is configured to support Google Pay automatically alongside PayPal and Credit Cards.
+
+1.  **Enable in Dashboard**: Ensure Google Pay is enabled in your PayPal Developer Dashboard for your App (if applicable).
+2.  **Browser Support**: The "Google Pay" button will automatically appear in the payment popup or list **if**:
+    *   The user is on a supported device/browser (Chrome, Android).
+    *   The user has a Google Pay wallet configured.
+3.  **Troubleshooting**: If the button doesn't appear, check if you are logged into a Google account with payment methods attached in Chrome.
+
 ## Troubleshooting
 
 *   **Payment Failed?** Check the Render logs. If you see "Authentication failed", double-check that you copied the Secret correctly and that it matches the Client ID (Sandbox ID with Sandbox Secret).

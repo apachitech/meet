@@ -78,7 +78,9 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
         <PayPalScriptProvider options={{ 
             clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "test",
             currency: "USD",
-            intent: "capture"
+            intent: "capture",
+            components: "buttons,googlepay",
+            "enable-funding": "googlepay"
         }}>
             <div style={{
                 position: 'fixed',
@@ -207,6 +209,12 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                                         style={{ layout: "vertical", shape: "rect" }}
                                         createOrder={createOrder}
                                         onApprove={handleApprove}
+                                        onCancel={() => setLoading(null)}
+                                        onError={(err) => {
+                                            console.error("PayPal Error:", err);
+                                            setLoading(null);
+                                            alert("Payment could not be processed. Please try again.");
+                                        }}
                                         forceReRender={[selectedPackage.id]}
                                     />
                                 ) : (
@@ -240,6 +248,6 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                     </div>
                 </div>
             </div>
-        </PayPalScriptProvider>
+        </>
     );
 };

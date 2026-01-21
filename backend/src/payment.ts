@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // PayPal Client Setup
-const Environment = process.env.NODE_ENV === 'production'
+const Environment = process.env.PAYPAL_MODE === 'live'
   ? paypal.core.LiveEnvironment
   : paypal.core.SandboxEnvironment;
 
@@ -77,7 +77,7 @@ export const captureOrder = async (req: any, res: any) => {
     }
 
     const request = new paypal.orders.OrdersCaptureRequest(orderId);
-    // request.requestBody({});
+    request.requestBody({});
 
     const capture = await client.execute(request);
     
