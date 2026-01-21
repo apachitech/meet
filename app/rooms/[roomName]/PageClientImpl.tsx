@@ -38,6 +38,7 @@ import { OverlayChat } from '@/app/custom/OverlayChat';
 import { CustomControls } from '@/app/custom/CustomControls';
 import { SpectatorRow } from '@/app/custom/SpectatorRow';
 import { TokenStore } from '@/app/custom/TokenStore';
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { api, API_BASE } from '../../../lib/api';
 import { usePrivateStatus } from '../../../lib/usePrivateStatus';
 import { LiveStatsBar } from '@/app/custom/LiveStatsBar';
