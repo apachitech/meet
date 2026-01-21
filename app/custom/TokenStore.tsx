@@ -68,11 +68,35 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
         }
     };
 
-    // If a package is selected, show PayPal buttons in a modal or overlay on top of the selection
-    // Or just render buttons inside the package card? Rendering inside every card is heavy.
-    // Let's render buttons when a package is clicked.
-    
-    const isConfigured = !!process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID && process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID !== 'test';
+    // Check if real PayPal credentials are set
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+    const isConfigured = !!clientId && clientId !== 'test' && !clientId.includes('your_paypal_client_id');
+
+    const handleMockPayment = async () => {
+        if (!selectedPackage) return;
+        setLoading(selectedPackage.id);
+        
+        try {
+            const token = localStorage.getItem('token');
+            // 1. Create Mock Order
+            const createRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/create-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ packageId: selectedPackage.id, amount: selectedPackage.price })
+            });
+            const orderData = await createRes.json();
+            
+            if (!orderData.id) throw new Error("Failed to create mock order");
+
+            // 2. Capture Mock Order
+            await handleApprove({ orderID: orderData.id }, null);
+            
+        } catch (error) {
+            console.error(error);
+            setLoading(null);
+            alert("Mock payment failed");
+        }
+    };
 
     return (
         <>
