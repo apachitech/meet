@@ -38,6 +38,7 @@ import { OverlayChat } from '@/app/custom/OverlayChat';
 import { CustomControls } from '@/app/custom/CustomControls';
 import { SpectatorRow } from '@/app/custom/SpectatorRow';
 import { TokenStore } from '@/app/custom/TokenStore';
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { api, API_BASE } from '../../../lib/api';
 import { usePrivateStatus } from '../../../lib/usePrivateStatus';
 import { LiveStatsBar } from '@/app/custom/LiveStatsBar';
@@ -668,7 +669,6 @@ function VideoConferenceComponent(props: {
         <GiftOverlay roomName={props.roomName} username={props.userChoices.username} />
       </RoomContext.Provider>
     </div>
-    </>
   );
 }
 
@@ -803,7 +803,11 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
   };
 
   return (
-    <PayPalScriptProvider options={{ clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "test" }}>
+    <PayPalScriptProvider options={{ 
+        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "AUdBD5V3mny8aAASRLkSzuahGB9Nc3001sg7ZkBpdcfXjC8V7xPhIw4LT9vbVC4mCCCY5AjzivqFz_GM",
+        currency: "USD",
+        intent: "capture"
+    }}>
       {showStore && <TokenStore onClose={() => setShowStore(false)} onPurchaseComplete={refreshUser} />}
       <button 
          onClick={() => setIsOpen(!isOpen)}

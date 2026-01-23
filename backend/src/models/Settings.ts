@@ -28,7 +28,8 @@ const tokenPackageSchema = new mongoose.Schema({
   tokens: Number,
   price: Number,
   label: String,
-  popular: Boolean
+  popular: Boolean,
+  lemonVariantId: String // ID from LemonSqueezy Product Variant
 }, { _id: false });
 
 const paymentMethodSchema = new mongoose.Schema({
@@ -67,7 +68,8 @@ const settingsSchema = new mongoose.Schema({
   paymentMethods: { 
       type: [paymentMethodSchema], 
       default: [
-        { id: 'card', name: 'Credit Card (Simulated)', enabled: true },
+        { id: 'paypal', name: 'PayPal', enabled: true },
+        { id: 'lemon', name: 'LemonSqueezy', enabled: true },
         { id: 'stripe', name: 'Stripe', enabled: false },
         { id: 'crypto', name: 'Crypto', enabled: false }
       ] 

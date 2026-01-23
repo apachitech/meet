@@ -16,6 +16,8 @@ import { startPrivateShow, stopPrivateShow, getPrivateStatus, initPrivateShowMon
 import { getBattleStatus, startBattle, stopBattle } from './battles.js';
 import { saveMessage, getMessages } from './chat.js';
 import { createOrder, captureOrder } from './payment.js';
+import { redeemCode, generateVouchers, getVouchers } from './redemption.js';
+import { createLemonCheckout, handleLemonWebhook } from './lemon.js';
 import { 
   getSettings, updateSettings, getUsers, updateUserRole, adminCreditUser, adminSendGift,
   adminGetGifts, adminAddGift, adminUpdateGift, adminDeleteGift,
@@ -156,6 +158,9 @@ app.get('/api/chat/:roomName', getMessages);
 // Payment Routes
 app.post('/api/payment/create-order', authenticateToken, createOrder);
 app.post('/api/payment/capture-order', authenticateToken, captureOrder);
+app.post('/api/payment/redeem', authenticateToken, redeemCode);
+app.post('/api/payment/lemon/checkout', authenticateToken, createLemonCheckout);
+app.post('/api/payment/lemon/webhook', handleLemonWebhook);
 
 // Admin Routes
 app.get('/api/admin/settings', getSettings); // Public read for now? Or auth? Ideally public read for theme, auth write.
@@ -188,6 +193,10 @@ app.get('/api/admin/sections', authenticateAdmin, adminGetSections);
 app.post('/api/admin/sections', authenticateAdmin, adminAddSection);
 app.put('/api/admin/sections/:id', authenticateAdmin, adminUpdateSection);
 app.delete('/api/admin/sections/:id', authenticateAdmin, adminDeleteSection);
+
+// Admin Vouchers
+app.get('/api/admin/vouchers', authenticateAdmin, getVouchers);
+app.post('/api/admin/vouchers', authenticateAdmin, generateVouchers);
 
 // Public Ads
 app.get('/api/ads', getActiveAds);

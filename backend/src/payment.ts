@@ -1,44 +1,124 @@
 import { User } from './models/User.js';
+import { Settings } from './models/Settings.js';
+import paypal from '@paypal/checkout-server-sdk';
 import dotenv from 'dotenv';
 dotenv.config();
 
+// PayPal Client Setup
+const isLive = process.env.PAYPAL_MODE === 'live';
+const Environment = isLive
+  ? paypal.core.LiveEnvironment
+  : paypal.core.SandboxEnvironment;
+
+console.log(`[PayPal] Initializing in ${isLive ? 'LIVE' : 'SANDBOX'} mode`);
+
+const client = new paypal.core.PayPalHttpClient(
+  new Environment(
+    process.env.PAYPAL_CLIENT_ID || 'sandbox-client-id',
+    process.env.PAYPAL_CLIENT_SECRET || 'sandbox-client-secret'
+  )
+);
+
 export const createOrder = async (req: any, res: any) => {
   const { packageId, amount } = req.body;
+  console.log(`[PayPal] Creating order for package: ${packageId}, amount: ${amount}`);
 
-  // Always use Mock/Simulated Order
-  console.log('Creating Simulated Card Order');
-  const orderId = `SIM-ORDER-${Date.now()}`;
-  return res.json({ id: orderId, status: 'CREATED' });
+  try {
+      // Validate against DB Settings
+      const settings = await Settings.get();
+      const pkg = settings.tokenPackages.find(p => p.id === packageId);
+
+      if (!pkg) {
+          console.warn(`[PayPal] Invalid package ID: ${packageId}`);
+          return res.status(400).json({ message: 'Invalid package ID' });
+      }
+
+      // Verify price matches (security check)
+      if (Math.abs(pkg.price - Number(amount)) > 0.01) {
+          console.warn(`[PayPal] Price mismatch for ${packageId}. Expected ${pkg.price}, got ${amount}`);
+          return res.status(400).json({ message: 'Price mismatch. Please refresh and try again.' });
+      }
+
+      const request = new paypal.orders.OrdersCreateRequest();
+      request.prefer("return=representation");
+      request.requestBody({
+        intent: 'CAPTURE',
+        purchase_units: [{
+          amount: {
+            currency_code: 'USD',
+            value: pkg.price.toString()
+          },
+          description: `Token Package: ${pkg.label} (${pkg.tokens} tokens)`,
+          custom_id: packageId // Store packageId in custom_id for reference
+        }]
+      });
+
+      console.log('[PayPal] Sending request to PayPal API...');
+      const order = await client.execute(request);
+      console.log(`[PayPal] Order created successfully: ${order.result.id}`);
+      res.json({ id: order.result.id, status: 'CREATED' });
+  } catch (err: any) {
+      console.error("[PayPal] Create Order Failed:", JSON.stringify(err, null, 2));
+      // Extract detailed error from PayPal response if available
+      const details = err.message || "Unknown error";
+      const debugId = err.debug_id || "unknown";
+      console.error(`[PayPal] Debug ID: ${debugId}`);
+      
+      res.status(500).json({ 
+          message: 'Failed to initiate PayPal payment.', 
+          details: details,
+          debugId: debugId
+      });
+  }
 };
 
 export const captureOrder = async (req: any, res: any) => {
   const { orderId, packageId } = req.body;
   const userId = req.user.userId;
 
-  try {
-     const user = await User.findById(userId);
-     if (!user) return res.status(404).json({ message: 'User not found' });
-     
-     const tokenPackages: Record<string, number> = {
-        'pkg_100': 100,
-        'pkg_500': 500,
-        'pkg_1000': 1000,
-        'pkg_5000': 5000
-    };
+  console.log(`[PayPal] Capturing order: ${orderId} for user: ${userId}`);
 
-    const tokensToAdd = tokenPackages[packageId] || 0;
-    if (tokensToAdd > 0) {
-        user.tokenBalance += tokensToAdd;
-        await user.save();
-    }
+  try {
+    const request = new paypal.orders.OrdersCaptureRequest(orderId);
+    request.requestBody({});
+
+    const capture = await client.execute(request);
+    const result = capture.result;
     
-    return res.json({ 
-        status: 'COMPLETED', 
-        message: 'Payment successful (Simulated)', 
-        newBalance: user.tokenBalance 
-    });
+    console.log(`[PayPal] Capture status: ${result.status}`);
+
+    // Check if capture was successful
+    if (result.status === 'COMPLETED') {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Fetch package details from Settings
+        const settings = await Settings.get();
+        const pkg = settings.tokenPackages.find(p => p.id === packageId);
+        
+        if (!pkg) {
+            console.warn(`[PayPal] Unknown packageId: ${packageId}, defaulting to 0 tokens.`);
+            // Note: Money is captured, but package is unknown. Should probably log critical error or manual review.
+            // For now, fail safely but money is taken. In real app, might auto-refund or credit default.
+            return res.status(400).json({ message: 'Payment captured but invalid package. Contact support.' });
+        }
+
+        user.tokenBalance += pkg.tokens;
+        await user.save();
+
+        console.log(`[PayPal] User ${userId} credited with ${pkg.tokens} tokens. New balance: ${user.tokenBalance}`);
+
+        res.json({ 
+            status: 'COMPLETED', 
+            message: 'Payment successful', 
+            newBalance: user.tokenBalance 
+        });
+    } else {
+        console.warn(`[PayPal] Capture not completed. Status: ${result.status}`);
+        res.status(400).json({ message: 'Payment not completed', status: result.status });
+    }
   } catch (error: any) {
-    console.error('Payment Capture Error:', error);
-    res.status(500).json({ message: 'Payment failed', error: error.message });
+    console.error('[PayPal] Capture Error:', error);
+    res.status(500).json({ message: 'Payment capture failed', error: error.message });
   }
 };
