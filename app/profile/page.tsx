@@ -8,6 +8,8 @@ import styles from '../../styles/Profile.module.css';
 import { Toaster, toast } from 'react-hot-toast';
 import { useUser } from '../components/UserProvider';
 import { Skeleton } from '../components/Skeleton';
+import { TokenStore } from '../custom/TokenStore';
+import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -25,6 +27,7 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
+    const [showTokenStore, setShowTokenStore] = useState(false);
 
     // Local state for editing
     const [editForm, setEditForm] = useState({ email: '', bio: '' });
@@ -59,6 +62,36 @@ export default function ProfilePage() {
                 setLoading(false);
             });
     }, [router, globalUser, globalLoading]);
+
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image size must be less than 5MB');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64 = reader.result as string;
+            // Optimistic update
+            setUser(prev => prev ? { ...prev, avatar: base64 } : null);
+            
+            try {
+                const res = await api.put('/api/profile', { avatar: base64 }, true);
+                if (res.ok) {
+                    toast.success('Profile picture updated!');
+                    refreshUser();
+                } else {
+                    toast.error('Failed to update profile picture');
+                }
+            } catch (error) {
+                toast.error('Error uploading image');
+            }
+        };
+        reader.readAsDataURL(file);
+    };
 
     const handleUpdateProfile = async () => {
         setSaving(true);
@@ -104,7 +137,7 @@ export default function ProfilePage() {
     };
 
     const handleTopUp = () => {
-        toast('Top Up feature coming soon!', { icon: '💳' });
+        setShowTokenStore(true);
     };
 
     const handleWithdraw = () => {
@@ -146,6 +179,51 @@ export default function ProfilePage() {
                 return (
                     <>
                         <section className={styles.card}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
+                                <div style={{ position: 'relative', width: '120px', height: '120px' }}>
+                                    <img 
+                                        src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=random`} 
+                                        alt="Profile" 
+                                        style={{ 
+                                            width: '100%', 
+                                            height: '100%', 
+                                            borderRadius: '50%', 
+                                            objectFit: 'cover',
+                                            border: '4px solid var(--accent-primary)'
+                                        }} 
+                                    />
+                                    <label 
+                                        htmlFor="avatar-upload" 
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: '0',
+                                            right: '0',
+                                            background: 'var(--accent-primary)',
+                                            color: 'white',
+                                            borderRadius: '50%',
+                                            width: '32px',
+                                            height: '32px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            border: '2px solid #1a1a1a'
+                                        }}
+                                        title="Change Profile Picture"
+                                    >
+                                        📷
+                                    </label>
+                                    <input 
+                                        id="avatar-upload" 
+                                        type="file" 
+                                        accept="image/*" 
+                                        onChange={handleAvatarChange} 
+                                        style={{ display: 'none' }} 
+                                    />
+                                </div>
+                                <h2 style={{ marginTop: '1rem', marginBottom: '0.25rem' }}>{user?.username}</h2>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{user?.email}</span>
+                            </div>
                             <div className={styles.infoGrid}>
                                 <div className={styles.infoItem}>
                                     <span className={styles.infoLabel}>Username</span>
@@ -223,7 +301,7 @@ export default function ProfilePage() {
                         <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>Edit Profile</h2>
                         <div className={styles.formGroup}>
                             <label className={styles.formLabel}>Username</label>
-                            <input className={styles.formInput} defaultValue={user?.username} disabled style={{ opacity: 0.7, cursor: 'not-allowed' }} />
+                            <input className={styles.formInput} value={user?.username || ''} disabled style={{ opacity: 0.7, cursor: 'not-allowed' }} />
                             <small style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>Username cannot be changed.</small>
                         </div>
                         <div className={styles.formGroup}>
@@ -301,8 +379,28 @@ export default function ProfilePage() {
     };
 
     return (
-        <div className={styles.profileContainer}>
-            <Toaster position="top-right" />
+        <PayPalScriptProvider options={{ 
+            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+            currency: "USD",
+            intent: "capture"
+        }}>
+            <div className={styles.profileContainer}>
+                <Toaster position="top-right" />
+                {showTokenStore && (
+                    <TokenStore 
+                        onClose={() => setShowTokenStore(false)} 
+                        onPurchaseComplete={() => {
+                            toast.success('Tokens added to your balance!');
+                            // Refresh user data to show new balance
+                            api.get('/api/profile', true)
+                                .then(res => res.json())
+                                .then(data => {
+                                    setUser(prev => prev ? { ...prev, tokenBalance: data.tokenBalance } : null);
+                                    refreshUser();
+                                });
+                        }} 
+                    />
+                )}
                 
                 {/* Full Width Sticky Header */}
                 <div className={styles.stickyHeader}>
@@ -376,10 +474,11 @@ export default function ProfilePage() {
                         </button>
                     </div>
                 </div>
-            <div style={{ height: '200px', flexShrink: 0 }} />
-            <div style={{ flexShrink: 0, position: 'relative', zIndex: 10 }}>
-                <Footer />
+                <div style={{ height: '200px', flexShrink: 0 }} />
+                <div style={{ flexShrink: 0, position: 'relative', zIndex: 10 }}>
+                    <Footer />
+                </div>
             </div>
-        </div>
+        </PayPalScriptProvider>
     );
 }

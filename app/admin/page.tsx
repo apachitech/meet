@@ -570,6 +570,96 @@ export default function AdminPage() {
                     Save Contact Info
                 </button>
             </div>
+
+            <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                <h3 style={{ marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Signup Bonus & Promo Banner</h3>
+                
+                <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <label style={{ color: '#aaa', fontSize: '0.9rem' }}>Enabled</label>
+                    <input 
+                        type="checkbox" 
+                        checked={settings.promo?.enabled ?? true}
+                        onChange={e => setSettings({
+                            ...settings, 
+                            promo: { ...(settings.promo || {}), enabled: e.target.checked }
+                        })}
+                        style={{ width: '20px', height: '20px' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Signup Bonus Amount (Tokens)</label>
+                    <input 
+                        type="number" 
+                        value={settings.promo?.bonusAmount ?? 50}
+                        onChange={e => setSettings({
+                            ...settings, 
+                            promo: { ...(settings.promo || {}), bonusAmount: Number(e.target.value) }
+                        })}
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Banner Title</label>
+                    <input 
+                        type="text" 
+                        value={settings.promo?.title ?? '50 Tokens'}
+                        onChange={e => setSettings({
+                            ...settings, 
+                            promo: { ...(settings.promo || {}), title: e.target.value }
+                        })}
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Banner Subtitle</label>
+                    <input 
+                        type="text" 
+                        value={settings.promo?.subtitle ?? 'Free for new accounts!'}
+                        onChange={e => setSettings({
+                            ...settings, 
+                            promo: { ...(settings.promo || {}), subtitle: e.target.value }
+                        })}
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Background Color / Gradient</label>
+                    <input 
+                        type="text" 
+                        value={settings.promo?.backgroundColor ?? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}
+                        onChange={e => setSettings({
+                            ...settings, 
+                            promo: { ...(settings.promo || {}), backgroundColor: e.target.value }
+                        })}
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                    <div style={{ marginTop: '0.5rem', height: '20px', borderRadius: '4px', background: settings.promo?.backgroundColor ?? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}></div>
+                </div>
+
+                <div style={{ marginBottom: '2rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Text Color</label>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <input 
+                            type="color" 
+                            value={settings.promo?.textColor ?? '#ffffff'}
+                            onChange={e => setSettings({
+                                ...settings, 
+                                promo: { ...(settings.promo || {}), textColor: e.target.value }
+                            })}
+                            style={{ width: '60px', height: '60px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} 
+                        />
+                        <span style={{ color: '#fff', fontFamily: 'monospace' }}>{settings.promo?.textColor ?? '#ffffff'}</span>
+                    </div>
+                </div>
+
+                <button onClick={saveSettings} style={{ width: '100%', padding: '14px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+                    Save Promo Settings
+                </button>
+            </div>
         </div>
       )}
 
@@ -723,10 +813,22 @@ export default function AdminPage() {
                                           </select>
                                           <button 
                                             onClick={() => handleCreditUser(u._id, u.username)}
-                                            style={{ padding: '6px 10px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}
-                                            title="Add Tokens"
+                                            style={{ 
+                                                padding: '6px 12px', 
+                                                background: 'var(--accent-primary)', 
+                                                color: '#fff', 
+                                                border: 'none', 
+                                                borderRadius: '6px', 
+                                                cursor: 'pointer', 
+                                                fontSize: '0.85rem',
+                                                fontWeight: 600,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                            title="Add/Deduct Tokens"
                                           >
-                                            💰
+                                            <span>💰</span> Top Up
                                           </button>
                                           <button 
                                             onClick={() => setGiftModalUser({ id: u._id, username: u.username })}

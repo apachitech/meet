@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from './models/User.js';
+import { Settings } from './models/Settings.js';
+import mongoose from 'mongoose';
 
 const JWT_SECRET = process.env.JWT_SECRET || '509ce6f70283b645c681d68f17425278d0cc8143818f80347cbf3ccbca4acd96';
 
@@ -24,13 +26,24 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
+    // Get signup bonus from settings
+    let bonus = 50; // Default fallback
+    try {
+        const settings = await Settings.findOne();
+        if (settings && settings.promo && settings.promo.enabled) {
+            bonus = settings.promo.bonusAmount;
+        }
+    } catch (e) {
+        console.error('Failed to fetch settings for signup bonus:', e);
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({
       username,
       password: hashedPassword,
       role,
       email,
-      tokenBalance: 1000 // Give 1000 tokens for testing
+      tokenBalance: bonus
     });
 
     res.status(201).json({ message: 'User registered successfully', userId: newUser._id });

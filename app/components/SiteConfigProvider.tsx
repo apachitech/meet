@@ -11,6 +11,14 @@ interface SiteSettings {
   homeSubtitle: string;
   gridTitle?: string;
   categories: { id: string; label: string; path: string }[];
+  promo?: {
+    enabled: boolean;
+    title: string;
+    subtitle: string;
+    backgroundColor: string;
+    textColor: string;
+    bonusAmount: number;
+  };
 }
 
 const SiteConfigContext = createContext<SiteSettings | null>(null);
@@ -27,7 +35,15 @@ export const SiteConfigProvider = ({ children }: { children: React.ReactNode }) 
       { id: 'girls', label: 'Female', path: '/girls' },
       { id: 'men', label: 'Male', path: '/men' },
       { id: 'vr', label: 'VR', path: '/vr' }
-    ]
+    ],
+    promo: {
+      enabled: true,
+      title: '50 Tokens',
+      subtitle: 'Free for new accounts!',
+      backgroundColor: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      textColor: '#ffffff',
+      bonusAmount: 50
+    }
   });
 
   useEffect(() => {

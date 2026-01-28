@@ -11,6 +11,14 @@ export interface ISettings extends Document {
   tokenPackages: { id: string; tokens: number; price: number; label: string; popular?: boolean }[];
   paymentMethods: { id: string; name: string; enabled: boolean }[];
   socialContacts: { whatsapp: string; telegram: string };
+  promo: {
+    enabled: boolean;
+    title: string;
+    subtitle: string;
+    backgroundColor: string;
+    textColor: string;
+    bonusAmount: number;
+  };
 }
 
 interface ISettingsModel extends Model<ISettings> {
@@ -78,6 +86,14 @@ const settingsSchema = new mongoose.Schema({
   socialContacts: {
       whatsapp: { type: String, default: '' },
       telegram: { type: String, default: '' }
+  },
+  promo: {
+    enabled: { type: Boolean, default: true },
+    title: { type: String, default: '50 Tokens' },
+    subtitle: { type: String, default: 'Free for new accounts!' },
+    backgroundColor: { type: String, default: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
+    textColor: { type: String, default: '#ffffff' },
+    bonusAmount: { type: Number, default: 50 }
   }
 });
 

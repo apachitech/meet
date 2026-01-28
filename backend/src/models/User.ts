@@ -12,6 +12,7 @@ export interface IUser extends Document {
   viewsCount: number;
   likes: number;
   avatar: string;
+  previewUrl: string;
   bio: string;
   settings: {
     emailNotifications: boolean;
@@ -40,6 +41,7 @@ const userSchema = new mongoose.Schema({
   viewsCount: { type: Number, default: 0 },
   likes: { type: Number, default: 0 },
   avatar: { type: String, default: '' },
+  previewUrl: { type: String, default: '' },
   bio: { type: String, default: '' },
   settings: {
     emailNotifications: { type: Boolean, default: true },
