@@ -16,7 +16,7 @@ const GIFT_ICONS = [
 export default function AdminPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
-  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy' | 'promotions' | 'ads' | 'sections'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy' | 'promotions' | 'ads' | 'sections' | 'vouchers'>('settings');
   const [isAdmin, setIsAdmin] = useState(false);
   
   // Data
@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [promotions, setPromotions] = useState<any[]>([]);
   const [ads, setAds] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
+  const [vouchers, setVouchers] = useState<any[]>([]);
   
   // Loading
   const [dataLoading, setDataLoading] = useState(true);
@@ -77,6 +78,13 @@ export default function AdminPage() {
         // Fetch Sections
         const sectionsRes = await api.get('/api/admin/sections', true);
         if (sectionsRes.ok) setSections(await sectionsRes.json());
+
+        // Fetch Vouchers
+        const vouchersRes = await api.get('/api/admin/vouchers', true);
+        if (vouchersRes.ok) {
+            const data = await vouchersRes.json();
+            setVouchers(data.vouchers || []);
+        }
 
     } catch (e) {
         console.error(e);
@@ -331,6 +339,37 @@ export default function AdminPage() {
       }
   };
 
+  // Vouchers
+  const handleGenerateVouchers = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const data = {
+          amount: parseInt((form.elements.namedItem('amount') as HTMLInputElement).value),
+          count: parseInt((form.elements.namedItem('count') as HTMLInputElement).value),
+          expiryDays: parseInt((form.elements.namedItem('expiryDays') as HTMLInputElement).value),
+      };
+
+      try {
+          const res = await api.post('/api/admin/vouchers', data, true);
+          if (res.ok) {
+              const result = await res.json();
+              toast.success(result.message);
+              // Refresh vouchers list
+              const vouchersRes = await api.get('/api/admin/vouchers', true);
+              if (vouchersRes.ok) {
+                  const vData = await vouchersRes.json();
+                  setVouchers(vData.vouchers || []);
+              }
+              form.reset();
+          } else {
+              toast.error('Failed to generate vouchers');
+          }
+      } catch (e) {
+          console.error(e);
+          toast.error('Error generating vouchers');
+      }
+  };
+
   if (userLoading || dataLoading) {
     return (
         <div style={{ padding: '2rem' }}>
@@ -380,7 +419,8 @@ export default function AdminPage() {
                 { id: 'economy', label: 'Economy', icon: '💰' },
                 { id: 'promotions', label: 'Promotions', icon: '📣' },
                 { id: 'ads', label: 'Advertisements', icon: '📺' },
-                { id: 'sections', label: 'Sections', icon: '📑' }
+                { id: 'sections', label: 'Sections', icon: '📑' },
+                { id: 'vouchers', label: 'Vouchers', icon: '🎟️' }
             ].map(tab => (
                 <button 
                     key={tab.id}
@@ -490,6 +530,44 @@ export default function AdminPage() {
 
                 <button onClick={saveSettings} style={{ width: '100%', padding: '14px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
                     Save Changes
+                </button>
+            </div>
+
+            <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                <h3 style={{ marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Contact & Social</h3>
+                
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>WhatsApp Number</label>
+                    <input 
+                        type="text" 
+                        placeholder="e.g. 1234567890"
+                        value={settings.socialContacts?.whatsapp || ''} 
+                        onChange={e => setSettings({
+                            ...settings, 
+                            socialContacts: { ...(settings.socialContacts || {}), whatsapp: e.target.value }
+                        })}
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                    <small style={{ color: '#666', marginTop: '0.5rem', display: 'block' }}>Format: Country code + Number (e.g. 15551234567)</small>
+                </div>
+
+                <div style={{ marginBottom: '2rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Telegram Username</label>
+                    <input 
+                        type="text" 
+                        placeholder="e.g. support_bot"
+                        value={settings.socialContacts?.telegram || ''} 
+                        onChange={e => setSettings({
+                            ...settings, 
+                            socialContacts: { ...(settings.socialContacts || {}), telegram: e.target.value }
+                        })}
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                    <small style={{ color: '#666', marginTop: '0.5rem', display: 'block' }}>Without @ symbol</small>
+                </div>
+
+                <button onClick={saveSettings} style={{ width: '100%', padding: '14px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+                    Save Contact Info
                 </button>
             </div>
         </div>
@@ -1084,6 +1162,84 @@ export default function AdminPage() {
               </div>
           </div>
       )}
+
+      {/* Vouchers Tab */}
+      {activeTab === 'vouchers' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '2rem' }}>
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333', height: 'fit-content' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Generate Vouchers</h3>
+                  <form onSubmit={handleGenerateVouchers} style={{ display: 'grid', gap: '1.2rem' }}>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Token Amount</label>
+                          <input name="amount" type="number" placeholder="100" required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Quantity</label>
+                          <input name="count" type="number" placeholder="1" defaultValue={1} min={1} max={50} required style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                      </div>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: '#aaa' }}>Expiry (Days)</label>
+                          <input name="expiryDays" type="number" placeholder="30" style={{ width: '100%', padding: '10px', background: '#0a0a0a', border: '1px solid #333', color: 'white', borderRadius: '6px', outline: 'none' }} />
+                          <small style={{ color: '#666', fontSize: '0.75rem' }}>Leave empty for no expiry</small>
+                      </div>
+                      <button type="submit" style={{ marginTop: '0.5rem', padding: '12px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Generate Codes</button>
+                  </form>
+              </div>
+
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Recent Vouchers</h3>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid #333', textAlign: 'left' }}>
+                                <th style={{ padding: '10px', color: '#aaa' }}>Code</th>
+                                <th style={{ padding: '10px', color: '#aaa' }}>Tokens</th>
+                                <th style={{ padding: '10px', color: '#aaa' }}>Status</th>
+                                <th style={{ padding: '10px', color: '#aaa' }}>Created</th>
+                                <th style={{ padding: '10px', color: '#aaa' }}>Used By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {vouchers.map((v: any) => (
+                                <tr key={v._id || v.code} style={{ borderBottom: '1px solid #222' }}>
+                                    <td style={{ padding: '12px 10px', fontFamily: 'monospace', color: 'var(--accent-secondary)' }}>
+                                        {v.code}
+                                        <button 
+                                            onClick={() => {navigator.clipboard.writeText(v.code); toast.success('Copied!');}}
+                                            style={{ marginLeft: '10px', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, fontSize: '0.8rem' }}
+                                            title="Copy Code"
+                                        >
+                                            📋
+                                        </button>
+                                    </td>
+                                    <td style={{ padding: '12px 10px', fontWeight: 'bold' }}>{v.tokens} 🪙</td>
+                                    <td style={{ padding: '12px 10px' }}>
+                                        {v.isUsed ? (
+                                            <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '3px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>Used</span>
+                                        ) : (
+                                            <span style={{ background: 'rgba(74, 222, 128, 0.2)', color: '#4ade80', padding: '3px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>Active</span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '12px 10px', color: '#888' }}>{new Date(v.createdAt).toLocaleDateString()}</td>
+                                    <td style={{ padding: '12px 10px', color: '#888' }}>
+                                        {v.usedBy ? (
+                                            <span title={v.usedBy}>User ID: ...{String(v.usedBy).slice(-6)}</span>
+                                        ) : '-'}
+                                    </td>
+                                </tr>
+                            ))}
+                            {vouchers.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>No vouchers found</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                  </div>
+              </div>
+          </div>
+      )}
+
       
       </div>
     </div>

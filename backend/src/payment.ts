@@ -23,13 +23,42 @@ export const createOrder = async (req: any, res: any) => {
   const { packageId, amount } = req.body;
   console.log(`[PayPal] Creating order for package: ${packageId}, amount: ${amount}`);
 
+  // Set a 30 second timeout for the entire request
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Request timeout after 30 seconds')), 30000)
+  );
+
   try {
-      // Validate against DB Settings
-      const settings = await Settings.get();
+      // Validate against DB Settings with timeout
+      console.log('[PayPal] Fetching settings from database...');
+      let settings;
+      try {
+        const settingsPromise = Settings.get();
+        settings = await Promise.race([
+          settingsPromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Settings query timeout')), 5000))
+        ]);
+        console.log('[PayPal] Settings retrieved successfully');
+      } catch (dbErr: any) {
+        console.error('[PayPal] Database error:', dbErr.message);
+        return res.status(500).json({ 
+          message: 'Failed to fetch payment settings from database',
+          error: dbErr.message 
+        });
+      }
+      
+      if (!settings || !settings.tokenPackages) {
+        console.error('[PayPal] Settings missing or no tokenPackages');
+        return res.status(500).json({ 
+          message: 'Payment settings not configured'
+        });
+      }
+
       const pkg = settings.tokenPackages.find(p => p.id === packageId);
 
       if (!pkg) {
           console.warn(`[PayPal] Invalid package ID: ${packageId}`);
+          console.warn(`[PayPal] Available packages:`, settings.tokenPackages.map(p => ({ id: p.id, label: p.label })));
           return res.status(400).json({ message: 'Invalid package ID' });
       }
 
@@ -49,7 +78,7 @@ export const createOrder = async (req: any, res: any) => {
             value: pkg.price.toString()
           },
           description: `Token Package: ${pkg.label} (${pkg.tokens} tokens)`,
-          custom_id: packageId // Store packageId in custom_id for reference
+          custom_id: packageId
         }]
       });
 
@@ -58,11 +87,12 @@ export const createOrder = async (req: any, res: any) => {
       console.log(`[PayPal] Order created successfully: ${order.result.id}`);
       res.json({ id: order.result.id, status: 'CREATED' });
   } catch (err: any) {
-      console.error("[PayPal] Create Order Failed:", JSON.stringify(err, null, 2));
-      // Extract detailed error from PayPal response if available
+      console.error("[PayPal] Create Order Failed:", err);
+      console.error("[PayPal] Error message:", err.message);
+      console.error("[PayPal] Error stack:", err.stack);
+      
       const details = err.message || "Unknown error";
       const debugId = err.debug_id || "unknown";
-      console.error(`[PayPal] Debug ID: ${debugId}`);
       
       res.status(500).json({ 
           message: 'Failed to initiate PayPal payment.', 

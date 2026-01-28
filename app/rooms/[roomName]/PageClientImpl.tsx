@@ -804,9 +804,10 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
 
   return (
     <PayPalScriptProvider options={{ 
-        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "AUdBD5V3mny8aAASRLkSzuahGB9Nc3001sg7ZkBpdcfXjC8V7xPhIw4LT9vbVC4mCCCY5AjzivqFz_GM",
+        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
         currency: "USD",
-        intent: "capture"
+        intent: "capture",
+        dataClientToken: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ? undefined : "test"
     }}>
       {showStore && <TokenStore onClose={() => setShowStore(false)} onPurchaseComplete={refreshUser} />}
       <button 

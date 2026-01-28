@@ -9,12 +9,14 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
     const [redeemCodeInput, setRedeemCodeInput] = useState('');
     const [redeemLoading, setRedeemLoading] = useState(false);
     const [lemonLoading, setLemonLoading] = useState(false);
+    const [socialContacts, setSocialContacts] = useState<{whatsapp?: string, telegram?: string}>({});
     
     useEffect(() => {
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/settings`)
             .then(res => res.json())
             .then(data => {
                 if (data.tokenPackages) setPackages(data.tokenPackages);
+                if (data.socialContacts) setSocialContacts(data.socialContacts);
             })
             .catch(console.error);
     }, []);
@@ -265,6 +267,52 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                             ))}
                         </div>
 
+                        {/* Manual Purchase Section */}
+                        {(socialContacts.whatsapp || socialContacts.telegram) && (
+                            <div style={{ marginTop: '2rem', borderTop: '1px solid #333', paddingTop: '1.5rem' }}>
+                                <h3 style={{ color: 'white', marginBottom: '0.5rem', fontSize: '1.1rem' }}>Manual Purchase</h3>
+                                <p style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                                    Prefer to pay manually? Contact our agent to pay and get a code.
+                                </p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
+                                    {socialContacts.whatsapp && (
+                                        <a 
+                                            href={`https://wa.me/${socialContacts.whatsapp}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                background: '#25D366', color: 'white', textDecoration: 'none',
+                                                padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem',
+                                                transition: 'opacity 0.2s'
+                                            }}
+                                            onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
+                                            onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                                        >
+                                            <span style={{ fontSize: '1.2rem' }}>📱</span> WhatsApp
+                                        </a>
+                                    )}
+                                    {socialContacts.telegram && (
+                                        <a 
+                                            href={`https://t.me/${socialContacts.telegram}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                background: '#0088cc', color: 'white', textDecoration: 'none',
+                                                padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem',
+                                                transition: 'opacity 0.2s'
+                                            }}
+                                            onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
+                                            onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                                        >
+                                            <span style={{ fontSize: '1.2rem' }}>✈️</span> Telegram
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Redemption Section */}
                         <div style={{ marginTop: '2rem', borderTop: '1px solid #333', paddingTop: '1.5rem' }}>
                             <h3 style={{ color: 'white', marginBottom: '1rem', fontSize: '1.1rem' }}>Have a code?</h3>
@@ -362,7 +410,15 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                                             onApprove={onApprove}
                                             onError={(err) => {
                                                 console.error("PayPal Button Error:", err);
-                                                setError("PayPal encountered an error. Please try again.");
+                                                const errorMsg = err?.message || JSON.stringify(err);
+                                                setError(`PayPal Error: ${errorMsg}`);
+                                            }}
+                                            onCancel={() => {
+                                                console.log("User cancelled PayPal payment");
+                                                setError("Payment was cancelled");
+                                            }}
+                                            onInit={(data, actions) => {
+                                                console.log("[TokenStore] PayPal buttons initialized");
                                             }}
                                         />
                                     ) : (

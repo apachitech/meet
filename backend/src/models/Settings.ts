@@ -10,6 +10,7 @@ export interface ISettings extends Document {
   categories: { id: string; label: string; path: string }[];
   tokenPackages: { id: string; tokens: number; price: number; label: string; popular?: boolean }[];
   paymentMethods: { id: string; name: string; enabled: boolean }[];
+  socialContacts: { whatsapp: string; telegram: string };
 }
 
 interface ISettingsModel extends Model<ISettings> {
@@ -73,6 +74,10 @@ const settingsSchema = new mongoose.Schema({
         { id: 'stripe', name: 'Stripe', enabled: false },
         { id: 'crypto', name: 'Crypto', enabled: false }
       ] 
+  },
+  socialContacts: {
+      whatsapp: { type: String, default: '' },
+      telegram: { type: String, default: '' }
   }
 });
 

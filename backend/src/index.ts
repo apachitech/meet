@@ -5,7 +5,6 @@ dotenv.config();
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import { register, login } from './auth.js';
-import { authenticateToken } from './middleware.js';
 import connectDB from './db.js';
 import { sendGift, getGifts } from './gifts.js';
 import { sendLike } from './likes.js';
@@ -25,7 +24,7 @@ import {
   adminGetAds, adminAddAd, adminUpdateAd, adminDeleteAd, getActiveAds,
   adminGetSections, adminAddSection, adminUpdateSection, adminDeleteSection, getActiveSections
 } from './admin.js';
-import { authenticateAdmin } from './middleware.js';
+import { authenticateToken, authenticateAdmin, authenticateTokenForPayment } from './middleware.js';
 
 const app = express();
 const port = 3001;
@@ -156,8 +155,8 @@ app.post('/api/chat/message', saveMessage);
 app.get('/api/chat/:roomName', getMessages);
 
 // Payment Routes
-app.post('/api/payment/create-order', authenticateToken, createOrder);
-app.post('/api/payment/capture-order', authenticateToken, captureOrder);
+app.post('/api/payment/create-order', authenticateTokenForPayment, createOrder);
+app.post('/api/payment/capture-order', authenticateTokenForPayment, captureOrder);
 app.post('/api/payment/redeem', authenticateToken, redeemCode);
 app.post('/api/payment/lemon/checkout', authenticateToken, createLemonCheckout);
 app.post('/api/payment/lemon/webhook', handleLemonWebhook);
