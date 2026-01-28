@@ -1,5 +1,5 @@
 import { User } from './models/User.js';
-import { Settings } from './models/Settings.js';
+import { Settings, ISettings } from './models/Settings.js';
 import paypal from '@paypal/checkout-server-sdk';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -31,12 +31,12 @@ export const createOrder = async (req: any, res: any) => {
   try {
       // Validate against DB Settings with timeout
       console.log('[PayPal] Fetching settings from database...');
-      let settings;
+      let settings: ISettings;
       try {
         const settingsPromise = Settings.get();
         settings = await Promise.race([
           settingsPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Settings query timeout')), 5000))
+          new Promise<ISettings>((_, reject) => setTimeout(() => reject(new Error('Settings query timeout')), 5000))
         ]);
         console.log('[PayPal] Settings retrieved successfully');
       } catch (dbErr: any) {

@@ -8,7 +8,7 @@ export interface ISettings extends Document {
   homeSubtitle: string;
   gridTitle: string;
   categories: { id: string; label: string; path: string }[];
-  tokenPackages: { id: string; tokens: number; price: number; label: string; popular?: boolean }[];
+  tokenPackages: { id: string; tokens: number; price: number; label: string; popular?: boolean; lemonVariantId?: string }[];
   paymentMethods: { id: string; name: string; enabled: boolean }[];
   socialContacts: { whatsapp: string; telegram: string };
   promo: {
