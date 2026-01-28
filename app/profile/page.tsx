@@ -22,6 +22,8 @@ export default function ProfilePage() {
         role: 'user' | 'model' | 'admin';
         tokenBalance: number;
         bio?: string;
+        avatar?: string;
+        previewUrl?: string;
         settings?: { emailNotifications: boolean; twoFactor: boolean };
     } | null>(null);
     const [loading, setLoading] = useState(true);
