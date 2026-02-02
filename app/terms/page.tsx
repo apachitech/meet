@@ -44,7 +44,7 @@ export default function TermsPage() {
         <section style={{ marginBottom: '2rem' }}>
           <h2 style={{ color: '#fff', fontSize: '1.5rem', marginBottom: '1rem' }}>4. Token System and Payments</h2>
           <p style={{ lineHeight: '1.6' }}>
-            Our platform operates on a virtual token system ("Tokens").
+            Our platform operates on a virtual token system (&quot;Tokens&quot;).
           </p>
           <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginTop: '0.5rem', lineHeight: '1.6' }}>
             <li>Tokens are a license to access and use certain features of the Service.</li>
