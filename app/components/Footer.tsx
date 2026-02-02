@@ -51,7 +51,7 @@ export const Footer = () => {
         <div>
           <h4 style={{ color: 'white', marginBottom: '1rem' }}>Legal</h4>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Terms of Service</a></li>
+            <li><a href="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>Terms of Service</a></li>
             <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy Policy</a></li>
             <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>Cookie Policy</a></li>
             <li><a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>DMCA</a></li>
