@@ -12,7 +12,6 @@ import { AdDisplay } from './components/AdDisplay';
 import { VideoCard } from './components/VideoCard';
 import { TokenStore } from './custom/TokenStore';
 import { toast, Toaster } from 'react-hot-toast';
-import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 
 // Helper component for sections
 const SectionGrid = ({ title, models, loading, onSeeAll }: { title: string, models: any[], loading: boolean, onSeeAll?: () => void }) => (
@@ -132,7 +131,6 @@ export default function Page() {
   const topRatedModels = models.filter((_, i) => i % 2 === 0); // Mock filter
 
   return (
-    <PayPalScriptProvider options={{ clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '', currency: 'USD', intent: 'capture' }}>
       <div className={styles.main}>
       <nav className={styles.navbar}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -484,6 +482,5 @@ export default function Page() {
           />
       )}
       </div>
-    </PayPalScriptProvider>
   );
 }

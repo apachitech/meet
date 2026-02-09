@@ -14,9 +14,9 @@ import { User } from './models/User.js';
 import { startPrivateShow, stopPrivateShow, getPrivateStatus, initPrivateShowMonitor } from './private-shows.js';
 import { getBattleStatus, startBattle, stopBattle } from './battles.js';
 import { saveMessage, getMessages } from './chat.js';
-import { createOrder, captureOrder } from './payment.js';
+import { processGooglePayTransaction } from './google_pay.js';
 import { redeemCode, generateVouchers, getVouchers } from './redemption.js';
-import { createLemonCheckout, handleLemonWebhook } from './lemon.js';
+import { initiateMobileMoneyTransaction, getPendingMobileMoneyTransactions, processMobileMoneyTransaction } from './mobile_money.js';
 import { 
   getSettings, updateSettings, getUsers, updateUserRole, adminCreditUser, adminSendGift,
   adminGetGifts, adminAddGift, adminUpdateGift, adminDeleteGift,
@@ -156,11 +156,13 @@ app.post('/api/chat/message', saveMessage);
 app.get('/api/chat/:roomName', getMessages);
 
 // Payment Routes
-app.post('/api/payment/create-order', authenticateTokenForPayment, createOrder);
-app.post('/api/payment/capture-order', authenticateTokenForPayment, captureOrder);
+app.post('/api/payment/google-pay/process', authenticateTokenForPayment, processGooglePayTransaction);
 app.post('/api/payment/redeem', authenticateToken, redeemCode);
-app.post('/api/payment/lemon/checkout', authenticateToken, createLemonCheckout);
-app.post('/api/payment/lemon/webhook', handleLemonWebhook);
+
+// Mobile Money Routes
+app.post('/api/payment/mobile-money/initiate', authenticateToken, initiateMobileMoneyTransaction);
+app.get('/api/admin/mobile-money/pending', authenticateAdmin, getPendingMobileMoneyTransactions);
+app.post('/api/admin/mobile-money/process', authenticateAdmin, processMobileMoneyTransaction);
 
 // Admin Routes
 app.get('/api/admin/settings', getSettings); // Public read for now? Or auth? Ideally public read for theme, auth write.

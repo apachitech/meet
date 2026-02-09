@@ -9,7 +9,6 @@ import { Toaster, toast } from 'react-hot-toast';
 import { useUser } from '../components/UserProvider';
 import { Skeleton } from '../components/Skeleton';
 import { TokenStore } from '../custom/TokenStore';
-import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -381,13 +380,8 @@ export default function ProfilePage() {
     };
 
     return (
-        <PayPalScriptProvider options={{ 
-            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
-            currency: "USD",
-            intent: "capture"
-        }}>
-            <div className={styles.profileContainer}>
-                <Toaster position="top-right" />
+        <div className={styles.profileContainer}>
+            <Toaster position="top-right" />
                 {showTokenStore && (
                     <TokenStore 
                         onClose={() => setShowTokenStore(false)} 
@@ -481,6 +475,5 @@ export default function ProfilePage() {
                     <Footer />
                 </div>
             </div>
-        </PayPalScriptProvider>
     );
 }

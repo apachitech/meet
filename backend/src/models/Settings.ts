@@ -8,9 +8,20 @@ export interface ISettings extends Document {
   homeSubtitle: string;
   gridTitle: string;
   categories: { id: string; label: string; path: string }[];
-  tokenPackages: { id: string; tokens: number; price: number; label: string; popular?: boolean; lemonVariantId?: string }[];
-  paymentMethods: { id: string; name: string; enabled: boolean }[];
+  tokenPackages: { id: string; tokens: number; price: number; label: string; popular?: boolean }[];
+  paymentMethods: { id: string; name: string; enabled: boolean; config?: any }[];
   socialContacts: { whatsapp: string; telegram: string };
+  mobileMoney: {
+    enabled: boolean;
+    instructions: string;
+  };
+  googlePay: {
+    enabled: boolean;
+    merchantId: string;
+    merchantName: string;
+    gateway: string;
+    gatewayMerchantId: string;
+  };
   promo: {
     enabled: boolean;
     title: string;
@@ -37,14 +48,14 @@ const tokenPackageSchema = new mongoose.Schema({
   tokens: Number,
   price: Number,
   label: String,
-  popular: Boolean,
-  lemonVariantId: String // ID from LemonSqueezy Product Variant
+  popular: Boolean
 }, { _id: false });
 
 const paymentMethodSchema = new mongoose.Schema({
   id: String,
   name: String,
-  enabled: Boolean
+  enabled: Boolean,
+  config: mongoose.Schema.Types.Mixed
 }, { _id: false });
 
 const settingsSchema = new mongoose.Schema({
@@ -77,8 +88,7 @@ const settingsSchema = new mongoose.Schema({
   paymentMethods: { 
       type: [paymentMethodSchema], 
       default: [
-        { id: 'paypal', name: 'PayPal', enabled: true },
-        { id: 'lemon', name: 'LemonSqueezy', enabled: true },
+        { id: 'google_pay', name: 'Google Pay', enabled: true },
         { id: 'stripe', name: 'Stripe', enabled: false },
         { id: 'crypto', name: 'Crypto', enabled: false }
       ] 
@@ -86,6 +96,17 @@ const settingsSchema = new mongoose.Schema({
   socialContacts: {
       whatsapp: { type: String, default: '' },
       telegram: { type: String, default: '' }
+  },
+  mobileMoney: {
+    enabled: { type: Boolean, default: false },
+    instructions: { type: String, default: 'Send money to...' }
+  },
+  googlePay: {
+    enabled: { type: Boolean, default: true },
+    merchantId: { type: String, default: '' },
+    merchantName: { type: String, default: 'Apacciflix' },
+    gateway: { type: String, default: 'example' },
+    gatewayMerchantId: { type: String, default: 'exampleGatewayMerchantId' }
   },
   promo: {
     enabled: { type: Boolean, default: true },

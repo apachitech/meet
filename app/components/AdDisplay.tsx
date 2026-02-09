@@ -41,10 +41,26 @@ export function AdDisplay({ location, className, style }: AdDisplayProps) {
   if (ads.length === 0) return null;
 
   const ad = ads[currentAdIndex];
+  
+  // Ensure URL is absolute for external links
+  const getSafeUrl = (url: string) => {
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) {
+        return url;
+    }
+    return `https://${url}`;
+  };
+
+  const safeUrl = getSafeUrl(ad.targetUrl);
 
   return (
     <div className={className} style={{ ...style, position: 'relative', overflow: 'hidden' }}>
-      <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', height: '100%' }}>
+      <a 
+        href={safeUrl} 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        style={{ display: 'block', width: '100%', height: '100%' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img 
           src={ad.imageUrl} 

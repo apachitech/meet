@@ -16,7 +16,7 @@ const GIFT_ICONS = [
 export default function AdminPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
-  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy' | 'promotions' | 'ads' | 'sections' | 'vouchers'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'home' | 'users' | 'gifts' | 'economy' | 'promotions' | 'ads' | 'sections' | 'vouchers' | 'mobile-money'>('settings');
   const [isAdmin, setIsAdmin] = useState(false);
   
   // Data
@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [ads, setAds] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [vouchers, setVouchers] = useState<any[]>([]);
+  const [mobileMoneyTransactions, setMobileMoneyTransactions] = useState<any[]>([]);
   
   // Loading
   const [dataLoading, setDataLoading] = useState(true);
@@ -84,6 +85,13 @@ export default function AdminPage() {
         if (vouchersRes.ok) {
             const data = await vouchersRes.json();
             setVouchers(data.vouchers || []);
+        }
+
+        // Fetch Mobile Money Transactions
+        const mmRes = await api.get('/api/admin/mobile-money/pending', true);
+        if (mmRes.ok) {
+            const data = await mmRes.json();
+            setMobileMoneyTransactions(data.transactions || []);
         }
 
     } catch (e) {
@@ -195,6 +203,23 @@ export default function AdminPage() {
       } catch (error) {
           console.error('Failed to delete gift:', error);
           toast.error('Failed to delete gift');
+      }
+  };
+
+  const handleProcessMobileMoney = async (transactionId: string, action: 'approve' | 'reject') => {
+      if (!confirm(`Are you sure you want to ${action} this transaction?`)) return;
+      try {
+          const res = await api.post('/api/admin/mobile-money/process', { transactionId, action }, true);
+          if (res.ok) {
+              toast.success(`Transaction ${action}d successfully`);
+              setMobileMoneyTransactions(mobileMoneyTransactions.filter(t => t._id !== transactionId));
+          } else {
+              const data = await res.json();
+              toast.error(data.message || `Failed to ${action} transaction`);
+          }
+      } catch (e) {
+          console.error(e);
+          toast.error(`Error processing transaction`);
       }
   };
 
@@ -420,7 +445,8 @@ export default function AdminPage() {
                 { id: 'promotions', label: 'Promotions', icon: '📣' },
                 { id: 'ads', label: 'Advertisements', icon: '📺' },
                 { id: 'sections', label: 'Sections', icon: '📑' },
-                { id: 'vouchers', label: 'Vouchers', icon: '🎟️' }
+                { id: 'vouchers', label: 'Vouchers', icon: '🎟️' },
+                { id: 'mobile-money', label: 'Mobile Money', icon: '📱' }
             ].map(tab => (
                 <button 
                     key={tab.id}
@@ -568,6 +594,83 @@ export default function AdminPage() {
 
                 <button onClick={saveSettings} style={{ width: '100%', padding: '14px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
                     Save Contact Info
+                </button>
+            </div>
+
+            <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                <h3 style={{ marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Google Pay Configuration</h3>
+                
+                <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <label style={{ color: '#aaa', fontSize: '0.9rem' }}>Enabled</label>
+                    <input 
+                        type="checkbox" 
+                        checked={settings.googlePay?.enabled ?? true}
+                        onChange={e => setSettings({
+                            ...settings, 
+                            googlePay: { ...(settings.googlePay || {}), enabled: e.target.checked }
+                        })}
+                        style={{ width: '20px', height: '20px' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Merchant ID</label>
+                    <input 
+                        type="text" 
+                        value={settings.googlePay?.merchantId || ''} 
+                        onChange={e => setSettings({
+                            ...settings, 
+                            googlePay: { ...(settings.googlePay || {}), merchantId: e.target.value }
+                        })}
+                        placeholder="BCR..."
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Merchant Name</label>
+                    <input 
+                        type="text" 
+                        value={settings.googlePay?.merchantName || ''} 
+                        onChange={e => setSettings({
+                            ...settings, 
+                            googlePay: { ...(settings.googlePay || {}), merchantName: e.target.value }
+                        })}
+                        placeholder="Example Corp"
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Gateway Name</label>
+                    <input 
+                        type="text" 
+                        value={settings.googlePay?.gateway || ''} 
+                        onChange={e => setSettings({
+                            ...settings, 
+                            googlePay: { ...(settings.googlePay || {}), gateway: e.target.value }
+                        })}
+                        placeholder="e.g. stripe, example"
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '2rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Gateway Merchant ID</label>
+                    <input 
+                        type="text" 
+                        value={settings.googlePay?.gatewayMerchantId || ''} 
+                        onChange={e => setSettings({
+                            ...settings, 
+                            googlePay: { ...(settings.googlePay || {}), gatewayMerchantId: e.target.value }
+                        })}
+                        placeholder="Gateway specific ID"
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                </div>
+
+                <button onClick={saveSettings} style={{ width: '100%', padding: '14px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+                    Save Google Pay Settings
                 </button>
             </div>
 
@@ -1342,8 +1445,109 @@ export default function AdminPage() {
           </div>
       )}
 
-      
+      {/* Mobile Money Tab */}
+      {activeTab === 'mobile-money' && (
+          <div style={{ display: 'grid', gap: '2rem' }}>
+              {/* Settings Section */}
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Configuration</h3>
+                  
+                  <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <label style={{ color: '#aaa', fontSize: '0.9rem' }}>Enable Mobile Money</label>
+                      <input 
+                          type="checkbox" 
+                          checked={settings.mobileMoney?.enabled || false}
+                          onChange={e => setSettings({
+                              ...settings, 
+                              mobileMoney: { ...(settings.mobileMoney || {}), enabled: e.target.checked }
+                          })}
+                          style={{ width: '20px', height: '20px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
+                      />
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>Payment Instructions</label>
+                      <textarea 
+                          value={settings.mobileMoney?.instructions || ''} 
+                          onChange={e => setSettings({
+                              ...settings, 
+                              mobileMoney: { ...(settings.mobileMoney || {}), instructions: e.target.value }
+                          })}
+                          rows={4}
+                          placeholder="Send money to 0123456789 and enter the reference ID below."
+                          style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none', minHeight: '100px', fontFamily: 'inherit' }} 
+                      />
+                  </div>
+
+                  <button onClick={saveSettings} style={{ padding: '12px 24px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                      Save Configuration
+                  </button>
+              </div>
+
+              {/* Transactions Section */}
+              <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h3 style={{ margin: 0 }}>Pending Transactions</h3>
+                      <button 
+                        onClick={fetchData} 
+                        style={{ background: '#333', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
+                      >
+                        ↻ Refresh
+                      </button>
+                  </div>
+
+                  {mobileMoneyTransactions.length === 0 ? (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: '#666', background: '#0a0a0a', borderRadius: '8px' }}>
+                          No pending transactions found.
+                      </div>
+                  ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                              <thead>
+                                  <tr style={{ borderBottom: '1px solid #333', color: '#aaa' }}>
+                                      <th style={{ textAlign: 'left', padding: '12px' }}>Date</th>
+                                      <th style={{ textAlign: 'left', padding: '12px' }}>User</th>
+                                      <th style={{ textAlign: 'left', padding: '12px' }}>Phone</th>
+                                      <th style={{ textAlign: 'left', padding: '12px' }}>Ref ID</th>
+                                      <th style={{ textAlign: 'left', padding: '12px' }}>Amount</th>
+                                      <th style={{ textAlign: 'left', padding: '12px' }}>Tokens</th>
+                                      <th style={{ textAlign: 'right', padding: '12px' }}>Actions</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  {mobileMoneyTransactions.map((tx: any) => (
+                                      <tr key={tx._id} style={{ borderBottom: '1px solid #222' }}>
+                                          <td style={{ padding: '12px' }}>{new Date(tx.createdAt).toLocaleDateString()}</td>
+                                          <td style={{ padding: '12px' }}>{tx.username}</td>
+                                          <td style={{ padding: '12px' }}>{tx.phoneNumber}</td>
+                                          <td style={{ padding: '12px', fontFamily: 'monospace', color: 'var(--accent-secondary)' }}>{tx.transactionReference}</td>
+                                          <td style={{ padding: '12px' }}>${tx.amount}</td>
+                                          <td style={{ padding: '12px' }}>{tx.tokens} 🪙</td>
+                                          <td style={{ padding: '12px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                              <button 
+                                                  onClick={() => handleProcessMobileMoney(tx._id, 'approve')}
+                                                  style={{ padding: '6px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                              >
+                                                  Approve
+                                              </button>
+                                              <button 
+                                                  onClick={() => handleProcessMobileMoney(tx._id, 'reject')}
+                                                  style={{ padding: '6px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                              >
+                                                  Reject
+                                              </button>
+                                          </td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      </div>
+                  )}
+              </div>
+          </div>
+      )}
       </div>
     </div>
   );
 }
+

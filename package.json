@@ -14,11 +14,11 @@
   },
   "dependencies": {
     "@datadog/browser-logs": "^5.23.3",
+    "@google-pay/button-react": "^3.2.1",
     "@livekit/components-react": "2.9.16",
     "@livekit/components-styles": "1.2.0",
     "@livekit/krisp-noise-filter": "0.3.4",
     "@livekit/track-processors": "^0.6.0",
-    "@paypal/react-paypal-js": "^8.9.2",
     "emoji-picker-react": "^4.16.1",
     "jsonwebtoken": "^9.0.0",
     "jwt-decode": "^4.0.0",

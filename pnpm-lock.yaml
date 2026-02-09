@@ -11,6 +11,9 @@ importers:
       '@datadog/browser-logs':
         specifier: ^5.23.3
         version: 5.35.1
+      '@google-pay/button-react':
+        specifier: ^3.2.1
+        version: 3.2.1(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@livekit/components-react':
         specifier: 2.9.16
         version: 2.9.16(@livekit/krisp-noise-filter@0.3.4(livekit-client@2.16.0(@types/dom-mediacapture-record@1.0.22)))(livekit-client@2.16.0(@types/dom-mediacapture-record@1.0.22))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tslib@2.8.1)
@@ -23,9 +26,6 @@ importers:
       '@livekit/track-processors':
         specifier: ^0.6.0
         version: 0.6.1(@types/dom-mediacapture-transform@0.1.11)(livekit-client@2.16.0(@types/dom-mediacapture-record@1.0.22))
-      '@paypal/react-paypal-js':
-        specifier: ^8.9.2
-        version: 8.9.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       emoji-picker-react:
         specifier: ^4.16.1
         version: 4.16.1(react@18.3.1)
@@ -310,6 +310,15 @@ packages:
   '@floating-ui/utils@0.2.9':
     resolution: {integrity: sha512-MDWhGtE+eHw5JW7lq4qhc5yRLS11ERl1c7Z6Xd0a58DozHES6EnNNwUWbMiG4J9Cgj053Bhk8zvlhFYKVhULwg==}
 
+  '@google-pay/button-react@3.2.1':
+    resolution: {integrity: sha512-PO4mmK4P43EteCsXmxMjiEpuSmTjsVvQxcTBxJ9HpBMrp9/q2UDDhjMFxp8+8QBDr1ZOguQIrlWDc4AIlXPMZw==}
+    engines: {node: '>=8.0.0'}
+    peerDependencies:
+      '@types/react': '>=16.0.0'
+      '@types/react-dom': '>=16.0.0'
+      react: '>=16.3.0'
+      react-dom: '>=16.3.0'
+
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
     engines: {node: '>=18.18.0'}
@@ -568,18 +577,6 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@paypal/paypal-js@9.2.0':
-    resolution: {integrity: sha512-bYud4/ibSSLsUspruhTrCxuznVY0O23XWwdbI6Wcf45c+1tpYW8BijHJ1/YoWYxslTvJODKHZ8UZWIVkI1pe3g==}
-
-  '@paypal/react-paypal-js@8.9.2':
-    resolution: {integrity: sha512-z1GoA7KAkhFCSmpIsRxe9aseXRvfOMgF6vCJ2Mym0VOSYJm8bZSC3Ui4SjONnglfV8S4P8djpe5QB7FtKsDXrQ==}
-    peerDependencies:
-      react: ^16.8.0 || ^17 || ^18 || ^19
-      react-dom: ^16.8.0 || ^17 || ^18 || ^19
-
-  '@paypal/sdk-constants@1.0.157':
-    resolution: {integrity: sha512-BjxWT9rK6dM1AOffSpvHYY47/8BY775jgEYYiwH6eL4YaqU5Epcw7zOtwQ8L4UaEn4FCAjZ2EWxaS83dCN7SpA==}
-
   '@rollup/rollup-android-arm-eabi@4.43.0':
     resolution: {integrity: sha512-Krjy9awJl6rKbruhQDgivNbD1WuLb8xAclM4IR4cN5pHGAs2oIMMQJEiC3IC/9TZJ+QZkmZhlMO/6MBGxPidpw==}
     cpu: [arm]
@@ -712,6 +709,9 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@types/googlepay@0.7.10':
+    resolution: {integrity: sha512-ByXjDfxEp87zsjw5cVsNKEeA+AIJYcWwJvRqPu85jO0Lp/FeG67csnf4mqbPaIxmdI6+Khp3v5I0yyjq9MrGhw==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -1488,9 +1488,6 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hi-base32@0.5.1:
-    resolution: {integrity: sha512-EmBBpvdYh/4XxsnUybsPag6VikPYnN30td+vQk+GI3qpahVEG9+gTkG0aXVxTjBqQ5T6ijbWIu77O+C5WFWsnA==}
-
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
@@ -1932,9 +1929,6 @@ packages:
     resolution: {integrity: sha512-QgODejq9K3OzoBbuyobZlUhznP5SKwPqp+6Q6xw6o8gnhr4O85L2U915iM2IDcfF2NPXVaM9zlo9tdwipnYwzg==}
     engines: {node: '>=14'}
     hasBin: true
-
-  promise-polyfill@8.3.0:
-    resolution: {integrity: sha512-H5oELycFml5yto/atYqmjyigJoAo3+OXwolYiH7OfQuYlAqhxNvTfiNMbV9hsC6Yp83yE5r2KTVmtrG6R9i6Pg==}
 
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
@@ -2578,6 +2572,14 @@ snapshots:
 
   '@floating-ui/utils@0.2.9': {}
 
+  '@google-pay/button-react@3.2.1(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@types/googlepay': 0.7.10
+      '@types/react': 18.3.27
+      '@types/react-dom': 18.3.7(@types/react@18.3.27)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   '@humanfs/core@0.19.1': {}
 
   '@humanfs/node@0.16.6':
@@ -2774,21 +2776,6 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@paypal/paypal-js@9.2.0':
-    dependencies:
-      promise-polyfill: 8.3.0
-
-  '@paypal/react-paypal-js@8.9.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@paypal/paypal-js': 9.2.0
-      '@paypal/sdk-constants': 1.0.157
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-
-  '@paypal/sdk-constants@1.0.157':
-    dependencies:
-      hi-base32: 0.5.1
-
   '@rollup/rollup-android-arm-eabi@4.43.0':
     optional: true
 
@@ -2876,6 +2863,8 @@ snapshots:
   '@types/estree@1.0.7': {}
 
   '@types/estree@1.0.8': {}
+
+  '@types/googlepay@0.7.10': {}
 
   '@types/json-schema@7.0.15': {}
 
@@ -3920,8 +3909,6 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hi-base32@0.5.1: {}
-
   iconv-lite@0.6.3:
     dependencies:
       safer-buffer: 2.1.2
@@ -4353,8 +4340,6 @@ snapshots:
   prelude-ls@1.2.1: {}
 
   prettier@3.7.3: {}
-
-  promise-polyfill@8.3.0: {}
 
   prop-types@15.8.1:
     dependencies:

@@ -38,7 +38,6 @@ import { OverlayChat } from '@/app/custom/OverlayChat';
 import { CustomControls } from '@/app/custom/CustomControls';
 import { SpectatorRow } from '@/app/custom/SpectatorRow';
 import { TokenStore } from '@/app/custom/TokenStore';
-import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { api, API_BASE } from '../../../lib/api';
 import { usePrivateStatus } from '../../../lib/usePrivateStatus';
 import { LiveStatsBar } from '@/app/custom/LiveStatsBar';
@@ -803,12 +802,7 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
   };
 
   return (
-    <PayPalScriptProvider options={{ 
-        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
-        currency: "USD",
-        intent: "capture",
-        dataClientToken: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ? undefined : "test"
-    }}>
+    <>
       {showStore && <TokenStore onClose={() => setShowStore(false)} onPurchaseComplete={refreshUser} />}
       <button 
          onClick={() => setIsOpen(!isOpen)}
@@ -1017,7 +1011,7 @@ function GiftOverlay({ roomName, username }: { roomName: string; username: strin
           )}
         </div>
       </div>
-    </PayPalScriptProvider>
+    </>
   );
 }
 

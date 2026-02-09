@@ -29,7 +29,10 @@ export const VideoCard = ({ model, loading }: VideoCardProps) => {
         const playPromise = videoRef.current.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
-                console.log("Auto-play was prevented", error);
+                // Ignore AbortError which happens when mouse leaves quickly
+                if (error.name !== 'AbortError') {
+                    console.log("Auto-play was prevented", error);
+                }
             });
         }
     } else if (!isHovered && videoRef.current) {
@@ -52,7 +55,7 @@ export const VideoCard = ({ model, loading }: VideoCardProps) => {
 
   // Use a sample video URL if previewUrl is not set (for demo purposes)
   // This is a sample MP4 link often used for testing
-  const sampleVideo = "https://media.w3.org/2010/05/sintel/trailer.mp4"; 
+  const sampleVideo = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"; 
   const previewSource = model.previewUrl || sampleVideo;
 
   return (

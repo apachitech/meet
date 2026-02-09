@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import GooglePayButton from '@google-pay/button-react';
 
 export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => void, onPurchaseComplete: () => void }) => {
     const [loading, setLoading] = useState<string | null>(null);
@@ -8,45 +8,91 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
     const [error, setError] = useState<string | null>(null);
     const [redeemCodeInput, setRedeemCodeInput] = useState('');
     const [redeemLoading, setRedeemLoading] = useState(false);
-    const [lemonLoading, setLemonLoading] = useState(false);
     const [socialContacts, setSocialContacts] = useState<{whatsapp?: string, telegram?: string}>({});
+    const [mobileMoneySettings, setMobileMoneySettings] = useState<{enabled: boolean, instructions: string}>({ enabled: false, instructions: '' });
+    const [googlePaySettings, setGooglePaySettings] = useState<{enabled: boolean, merchantId: string, merchantName: string, gateway: string, gatewayMerchantId: string} | null>(null);
     
+    // Mobile Money State
+    const [showMobileMoneyForm, setShowMobileMoneyForm] = useState(false);
+    const [mmPhone, setMmPhone] = useState('');
+    const [mmRef, setMmRef] = useState('');
+    const [mmLoading, setMmLoading] = useState(false);
+
     useEffect(() => {
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/admin/settings`)
             .then(res => res.json())
             .then(data => {
                 if (data.tokenPackages) setPackages(data.tokenPackages);
                 if (data.socialContacts) setSocialContacts(data.socialContacts);
+                if (data.mobileMoney) setMobileMoneySettings(data.mobileMoney);
+                if (data.googlePay) setGooglePaySettings(data.googlePay);
             })
             .catch(console.error);
     }, []);
 
-    // PayPal Configuration
-    const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
-    const isPayPalConfigured = paypalClientId && paypalClientId !== 'test';
-
-    const handleLemonCheckout = async () => {
+    const handleGooglePayLoadPaymentData = async (paymentData: any) => {
         if (!selectedPackage) return;
-        setLemonLoading(true);
+        setLoading(selectedPackage.id);
         setError(null);
+        
         try {
+            console.log('[TokenStore] Google Pay Payment Data:', paymentData);
             const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/lemon/checkout`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/google-pay/process`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ packageId: selectedPackage.id })
+                body: JSON.stringify({ 
+                    paymentData,
+                    packageId: selectedPackage.id 
+                })
+            });
+            
+            const result = await res.json();
+            
+            if (res.ok && result.success) {
+                alert(`Successfully purchased ${selectedPackage.tokens} tokens!`);
+                onPurchaseComplete();
+                onClose();
+            } else {
+                throw new Error(result.message || 'Payment processing failed');
+            }
+        } catch (err: any) {
+            console.error("Google Pay Error:", err);
+            setError(`Payment failed: ${err.message}`);
+        } finally {
+            setLoading(null);
+        }
+    };
+
+
+    const handleMobileMoneySubmit = async () => {
+        if (!selectedPackage || !mmPhone || !mmRef) return;
+        setMmLoading(true);
+        setError(null);
+        
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/mobile-money/initiate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ 
+                    packageId: selectedPackage.id,
+                    phoneNumber: mmPhone,
+                    transactionReference: mmRef
+                })
             });
             const data = await res.json();
-            
-            if (res.ok && data.url) {
-                window.location.href = data.url;
+
+            if (res.ok) {
+                alert('Payment submitted! Tokens will be added after admin approval.');
+                onClose();
             } else {
-                throw new Error(data.message || 'Failed to start checkout');
+                throw new Error(data.message || 'Failed to submit payment');
             }
         } catch (err: any) {
             setError(err.message);
         } finally {
-            setLemonLoading(false);
+            setMmLoading(false);
         }
     };
 
@@ -75,110 +121,6 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
             setError(err.message);
         } finally {
             setRedeemLoading(false);
-        }
-    };
-
-    const createOrder = async (data: any, actions: any) => {
-        if (!selectedPackage) return '';
-        setError(null);
-        
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        console.log(`[TokenStore] Starting Payment Flow`);
-        console.log(`[TokenStore] API URL: ${apiUrl}`);
-        console.log(`[TokenStore] Package: ${selectedPackage.id} ($${selectedPackage.price})`);
-
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                const msg = "You are not logged in. Please log in to purchase tokens.";
-                alert(msg);
-                throw new Error(msg);
-            }
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
-
-            console.log(`[TokenStore] Sending request to ${apiUrl}/api/payment/create-order`);
-            
-            const res = await fetch(`${apiUrl}/api/payment/create-order`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify({ 
-                    packageId: selectedPackage.id, 
-                    amount: selectedPackage.price 
-                }),
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            
-            console.log(`[TokenStore] Response received: ${res.status}`);
-            
-            // Handle HTTP Errors
-            if (!res.ok) {
-                const text = await res.text();
-                console.error(`[TokenStore] Error Body: ${text}`);
-                try {
-                    const json = JSON.parse(text);
-                    throw new Error(json.message || json.details || `Server Error: ${res.status}`);
-                } catch (e) {
-                    throw new Error(`Server Error: ${res.status} - ${text.substring(0, 50)}...`);
-                }
-            }
-
-            const order = await res.json();
-            console.log(`[TokenStore] Order ID received: ${order.id}`);
-            
-            if (!order.id) {
-                throw new Error('Invalid response from server: No Order ID');
-            }
-            
-            return order.id;
-
-        } catch (err: any) {
-            console.error("[TokenStore] Create Order Fatal Error:", err);
-            
-            let msg = err.message;
-            if (err.name === 'AbortError') msg = "Connection timed out. Check if backend is running.";
-            if (err.message.includes('Failed to fetch')) msg = "Network Error: Cannot connect to backend server. Is it running?";
-
-            setError(msg);
-            alert(`Payment Failed: ${msg}`);
-            
-            // Re-throw to stop PayPal spinner
-            throw err;
-        }
-    };
-
-    const onApprove = async (data: any, actions: any) => {
-        if (!selectedPackage) return;
-        setLoading(selectedPackage.id);
-        setError(null);
-        
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payment/capture-order`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ orderId: data.orderID, packageId: selectedPackage.id })
-            });
-            
-            const result = await res.json();
-            
-            if (res.ok && result.status === 'COMPLETED') {
-                alert(`Successfully purchased ${selectedPackage.tokens} tokens!`);
-                onPurchaseComplete();
-                onClose();
-            } else {
-                throw new Error(result.message || 'Payment capture failed');
-            }
-        } catch (err: any) {
-            console.error("Capture Error:", err);
-            setError(`Payment failed: ${err.message}`);
-        } finally {
-            setLoading(null);
         }
     };
 
@@ -362,6 +304,7 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                                 onClick={() => {
                                     setSelectedPackage(null);
                                     setError(null);
+                                    setShowMobileMoneyForm(false);
                                 }}
                                 style={{
                                     background: 'none',
@@ -402,83 +345,154 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                                     </div>
                                 )}
 
-                                <div style={{ maxWidth: '300px', margin: '0 auto' }}>
-                                    {isPayPalConfigured ? (
-                                        <PayPalButtons 
-                                            style={{ layout: "vertical", shape: "rect" }}
-                                            createOrder={createOrder}
-                                            onApprove={onApprove}
-                                            onError={(err) => {
-                                                console.error("PayPal Button Error:", err);
-                                                const errorMsg = err?.message || JSON.stringify(err);
-                                                setError(`PayPal Error: ${errorMsg}`);
-                                            }}
-                                            onCancel={() => {
-                                                console.log("User cancelled PayPal payment");
-                                                setError("Payment was cancelled");
-                                            }}
-                                            onInit={(data, actions) => {
-                                                console.log("[TokenStore] PayPal buttons initialized");
-                                            }}
-                                        />
-                                    ) : (
-                                        <div style={{ 
-                                            padding: '1rem', 
-                                            background: 'rgba(255, 165, 0, 0.1)', 
-                                            border: '1px solid orange',
-                                            borderRadius: '8px',
-                                            color: 'orange',
-                                            textAlign: 'center',
-                                            fontSize: '0.9rem'
-                                        }}>
-                                            <strong>Setup Required</strong>
-                                            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
-                                                PayPal Client ID is missing.<br/>
-                                                Please check your <code>.env.local</code> file.
+                                {!showMobileMoneyForm ? (
+                                    <div style={{ maxWidth: '300px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        {googlePaySettings?.enabled ? (
+                                            <div style={{ width: '100%' }}>
+                                                <GooglePayButton
+                                                    environment="TEST"
+                                                    paymentRequest={{
+                                                        apiVersion: 2,
+                                                        apiVersionMinor: 0,
+                                                        allowedPaymentMethods: [
+                                                            {
+                                                                type: 'CARD',
+                                                                parameters: {
+                                                                    allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+                                                                    allowedCardNetworks: ['MASTERCARD', 'VISA'],
+                                                                },
+                                                                tokenizationSpecification: {
+                                                                    type: 'PAYMENT_GATEWAY',
+                                                                    parameters: {
+                                                                        gateway: googlePaySettings.gateway || 'example',
+                                                                        gatewayMerchantId: googlePaySettings.gatewayMerchantId || 'exampleGatewayMerchantId',
+                                                                    },
+                                                                },
+                                                            },
+                                                        ],
+                                                        merchantInfo: {
+                                                            merchantId: googlePaySettings.merchantId || '12345678901234567890',
+                                                            merchantName: googlePaySettings.merchantName || 'Demo Merchant',
+                                                        },
+                                                        transactionInfo: {
+                                                            totalPriceStatus: 'FINAL',
+                                                            totalPriceLabel: 'Total',
+                                                            totalPrice: selectedPackage.price.toString(),
+                                                            currencyCode: 'USD',
+                                                            countryCode: 'US',
+                                                        },
+                                                    }}
+                                                    onLoadPaymentData={handleGooglePayLoadPaymentData}
+                                                    buttonType="buy"
+                                                    buttonSizeMode="fill"
+                                                    style={{ width: '100%' }}
+                                                />
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
-                                    <button
-                                        onClick={handleLemonCheckout}
-                                        disabled={lemonLoading}
-                                        style={{
-                                            width: '100%',
-                                            padding: '12px',
-                                            background: '#7047EB',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '4px',
-                                            fontSize: '1rem',
-                                            cursor: lemonLoading ? 'not-allowed' : 'pointer',
-                                            opacity: lemonLoading ? 0.7 : 1,
-                                            fontWeight: 'bold',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '8px'
-                                        }}
-                                    >
-                                        {lemonLoading ? 'Loading...' : (
-                                            <>
-                                                <span>🍋</span> Pay with Card (LemonSqueezy)
-                                            </>
+                                        ) : (
+                                            <div style={{ 
+                                                padding: '1rem', 
+                                                background: 'rgba(255, 165, 0, 0.1)', 
+                                                border: '1px solid orange',
+                                                borderRadius: '8px',
+                                                color: 'orange',
+                                                textAlign: 'center',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                <strong>Google Pay Not Configured</strong>
+                                            </div>
                                         )}
-                                    </button>
-                                </div>
+
+                                        {mobileMoneySettings.enabled && (
+                                            <button
+                                                onClick={() => setShowMobileMoneyForm(true)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '12px',
+                                                    background: '#10b981',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    fontSize: '1rem',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 'bold',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '8px'
+                                                }}
+                                            >
+                                                📱 Pay with Mobile Money
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div style={{ background: '#262626', padding: '1rem', borderRadius: '8px' }}>
+                                        <h4 style={{ color: 'white', marginBottom: '1rem', textAlign: 'center' }}>Mobile Money Payment</h4>
+                                        
+                                        <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#ccc', lineHeight: '1.5', whiteSpace: 'pre-line' }}>
+                                            {mobileMoneySettings.instructions || 'Please contact support for payment instructions.'}
+                                        </div>
+
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <label style={{ display: 'block', color: 'white', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Your Phone Number</label>
+                                            <input 
+                                                type="text" 
+                                                value={mmPhone}
+                                                onChange={e => setMmPhone(e.target.value)}
+                                                placeholder="+1234567890"
+                                                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #444', background: '#111', color: 'white' }}
+                                            />
+                                        </div>
+
+                                        <div style={{ marginBottom: '1.5rem' }}>
+                                            <label style={{ display: 'block', color: 'white', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Transaction Reference ID</label>
+                                            <input 
+                                                type="text" 
+                                                value={mmRef}
+                                                onChange={e => setMmRef(e.target.value)}
+                                                placeholder="e.g. TX123456789"
+                                                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #444', background: '#111', color: 'white' }}
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <button 
+                                                onClick={() => setShowMobileMoneyForm(false)}
+                                                style={{ flex: 1, padding: '10px', background: '#444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button 
+                                                onClick={handleMobileMoneySubmit}
+                                                disabled={mmLoading || !mmPhone || !mmRef}
+                                                style={{ 
+                                                    flex: 1, 
+                                                    padding: '10px', 
+                                                    background: '#ef4444', 
+                                                    color: 'white', 
+                                                    border: 'none', 
+                                                    borderRadius: '4px', 
+                                                    cursor: mmLoading ? 'not-allowed' : 'pointer',
+                                                    opacity: mmLoading ? 0.7 : 1
+                                                }}
+                                            >
+                                                {mmLoading ? 'Submitting...' : 'Confirm Payment'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
                     
                     <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         <div style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Accepted Methods:</div>
-                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '1rem' }}>
-                            <span style={{ padding: '4px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>PayPal</span>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                            <span style={{ padding: '4px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>Google Pay</span>
                             <span style={{ padding: '4px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>Cards</span>
+                            {mobileMoneySettings.enabled && <span style={{ padding: '4px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}>Mobile Money</span>}
                         </div>
-                        Secured by PayPal. By purchasing, you agree to our Terms of Service.
+                        Secured Payment Processing.
                     </div>
                 </div>
             </div>
