@@ -11,6 +11,7 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
     const [socialContacts, setSocialContacts] = useState<{whatsapp?: string, telegram?: string}>({});
     const [mobileMoneySettings, setMobileMoneySettings] = useState<{enabled: boolean, instructions: string}>({ enabled: false, instructions: '' });
     const [googlePaySettings, setGooglePaySettings] = useState<{enabled: boolean, merchantId: string, merchantName: string, gateway: string, gatewayMerchantId: string} | null>(null);
+    const [paypalSettings, setPaypalSettings] = useState<{enabled: boolean, meLink: string} | null>(null);
     
     // Mobile Money State
     const [showMobileMoneyForm, setShowMobileMoneyForm] = useState(false);
@@ -26,6 +27,7 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                 if (data.socialContacts) setSocialContacts(data.socialContacts);
                 if (data.mobileMoney) setMobileMoneySettings(data.mobileMoney);
                 if (data.googlePay) setGooglePaySettings(data.googlePay);
+                if (data.paypal) setPaypalSettings(data.paypal);
             })
             .catch(console.error);
     }, []);
@@ -400,6 +402,33 @@ export const TokenStore = ({ onClose, onPurchaseComplete }: { onClose: () => voi
                                             }}>
                                                 <strong>Google Pay Not Configured</strong>
                                             </div>
+                                        )}
+
+                                        {paypalSettings?.enabled && paypalSettings?.meLink && (
+                                            <button
+                                                onClick={() => {
+                                                    // Open PayPal.me link in new tab
+                                                    window.open(paypalSettings.meLink, '_blank');
+                                                    alert('After completing your payment on PayPal, please contact support with your transaction details to have your tokens added.');
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '12px',
+                                                    background: '#0070ba', // PayPal Blue
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    fontSize: '1rem',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 'bold',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '8px'
+                                                }}
+                                            >
+                                                <span style={{ fontStyle: 'italic', fontWeight: 900 }}>Pay</span>Pal
+                                            </button>
                                         )}
 
                                         {mobileMoneySettings.enabled && (

@@ -22,6 +22,11 @@ export interface ISettings extends Document {
     gateway: string;
     gatewayMerchantId: string;
   };
+  paypal: {
+    enabled: boolean;
+    clientId: string;
+    meLink?: string; // e.g., https://paypal.me/username
+  };
   promo: {
     enabled: boolean;
     title: string;
@@ -107,6 +112,11 @@ const settingsSchema = new mongoose.Schema({
     merchantName: { type: String, default: 'Apacciflix' },
     gateway: { type: String, default: 'example' },
     gatewayMerchantId: { type: String, default: 'exampleGatewayMerchantId' }
+  },
+  paypal: {
+    enabled: { type: Boolean, default: false },
+    clientId: { type: String, default: '' },
+    meLink: { type: String, default: '' }
   },
   promo: {
     enabled: { type: Boolean, default: true },

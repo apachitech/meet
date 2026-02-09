@@ -675,6 +675,42 @@ export default function AdminPage() {
             </div>
 
             <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
+                <h3 style={{ marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '1rem', marginBottom: '1.5rem' }}>PayPal Configuration</h3>
+                
+                <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <label style={{ color: '#aaa', fontSize: '0.9rem' }}>Enabled</label>
+                    <input 
+                        type="checkbox" 
+                        checked={settings.paypal?.enabled ?? false}
+                        onChange={e => setSettings({
+                            ...settings, 
+                            paypal: { ...(settings.paypal || {}), enabled: e.target.checked }
+                        })}
+                        style={{ width: '20px', height: '20px' }} 
+                    />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.8rem', color: '#aaa', fontSize: '0.9rem' }}>PayPal.me Link</label>
+                    <input 
+                        type="text" 
+                        value={settings.paypal?.meLink || ''} 
+                        onChange={e => setSettings({
+                            ...settings, 
+                            paypal: { ...(settings.paypal || {}), meLink: e.target.value }
+                        })}
+                        placeholder="https://paypal.me/yourusername"
+                        style={{ width: '100%', padding: '12px', background: '#0a0a0a', border: '1px solid #333', color: '#fff', borderRadius: '8px', outline: 'none' }} 
+                    />
+                    <small style={{ color: '#666', marginTop: '0.5rem', display: 'block' }}>Users will be redirected to this link to pay.</small>
+                </div>
+
+                <button onClick={saveSettings} style={{ width: '100%', padding: '14px', background: 'var(--accent-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}>
+                    Save PayPal Settings
+                </button>
+            </div>
+
+            <div style={{ background: '#121212', padding: '2rem', borderRadius: '12px', border: '1px solid #333' }}>
                 <h3 style={{ marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Signup Bonus & Promo Banner</h3>
                 
                 <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
